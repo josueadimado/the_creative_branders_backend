@@ -7,15 +7,44 @@ in Django admin — there is no public "list" API.
 from django.db import models
 
 
+# Stored as the words the visitor saw, so the admin screen matches the form.
+NEED_OPTIONS = [
+    "Website",
+    "Web app",
+    "Mobile app",
+    "Brand and design",
+    "Automation and AI",
+    "Data and reporting",
+    "Not sure yet",
+]
+TIMELINE_OPTIONS = [
+    "As soon as possible",
+    "In the next 1 to 3 months",
+    "In 3 to 6 months",
+    "Just exploring",
+]
+BUDGET_OPTIONS = [
+    "Under $2,000",
+    "$2,000 to $5,000",
+    "$5,000 to $15,000",
+    "$15,000 to $40,000",
+    "Over $40,000",
+    "I'd rather discuss it",
+]
+
+
 class InquiryMessage(models.Model):
-    """Contact page: name, email, optional phone/company, country, budget, message."""
+    """A project brief from the contact page."""
 
     name = models.CharField(max_length=120)
     email = models.EmailField()
     phone = models.CharField(max_length=40, blank=True)
     company = models.CharField(max_length=160, blank=True)
-    country = models.CharField(max_length=80)
-    budget_range = models.CharField(max_length=40)
+    country = models.CharField(max_length=80, blank=True)
+    needs = models.JSONField(default=list, blank=True)
+    timeline = models.CharField(max_length=80, blank=True)
+    budget_range = models.CharField(max_length=80, blank=True)
+    brief_link = models.CharField(max_length=300, blank=True)
     message = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 

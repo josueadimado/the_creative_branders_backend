@@ -53,8 +53,11 @@ def notify_inquiry(inquiry: InquiryMessage) -> None:
         f"Email: {inquiry.email}",
         f"WhatsApp / phone: {inquiry.phone or '(not provided)'}",
         f"Company: {inquiry.company or '(not provided)'}",
-        f"Country: {inquiry.country}",
-        f"Budget range: {inquiry.budget_range}",
+        f"Country: {inquiry.country or '(not provided)'}",
+        f"Needs: {', '.join(inquiry.needs) if inquiry.needs else '(not provided)'}",
+        f"Timeline: {inquiry.timeline or '(not provided)'}",
+        f"Budget range: {inquiry.budget_range or '(not provided)'}",
+        f"Link: {inquiry.brief_link or '(not provided)'}",
         f"Message:\n{inquiry.message}",
         f"\nAdmin: {admin_url}",
     ]
@@ -65,12 +68,15 @@ def notify_inquiry(inquiry: InquiryMessage) -> None:
             recipients=[studio],
         )
     # Visitor confirmation — inquiry form only.
+    first_name = inquiry.name.strip().split(" ")[0] or "there"
     _safe_send(
-        subject="We've received your inquiry",
+        subject="We've received your brief",
         body=(
-            "Thank you for reaching out to The Creative Branders. "
-            "We've received your message and will reply within 48 hours.\n\n"
-            "— The Creative Branders"
+            f"Hi {first_name}, thanks for getting in touch. "
+            "We've received your brief and will reply within one business day, "
+            "usually with a few questions or a time to talk. "
+            "If anything changes in the meantime, just reply to this email.\n\n"
+            "The Creative Branders"
         ),
         recipients=[inquiry.email],
     )
