@@ -1,0 +1,63 @@
+# Production compose for the Hetzner server.
+# Caddy (on the host) sits on the Docker network named web.
+# The database stays on the private default network only.
+# No published ports — Caddy reverse-proxies to the container by name.
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    expose:
+      - "5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  tcb-backend:
+    container_name: tcb-backend
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    restart: unless-stopped
+    stop_grace_period: 30s
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: db
+    expose:
+      - "8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput &&
+             exec gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import socket; s = socket.create_connection(('127.0.0.1', 8000), 2); s.close()",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    networks:
+      - default
+      - web
+
+volumes:
+  postgres_data:
+
+networks:
+  web:
+    external: true

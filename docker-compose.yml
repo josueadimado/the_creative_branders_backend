@@ -1,0 +1,58 @@
+# Local development — this folder only.
+# From backend/:
+#   docker compose up --build
+#
+# API:   http://localhost:8000
+# Admin: http://localhost:8000/admin
+#
+# Optional: copy .env.example to .env to override these defaults.
+# Production is docker-compose.prod.yml (Dokploy), not this file.
+
+services:
+  db:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-tcb}
+      POSTGRES_USER: ${POSTGRES_USER:-tcb}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tcb}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tcb} -d ${POSTGRES_DB:-tcb}"]
+      interval: 5s
+      timeout: 5s
+      retries: 8
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    environment:
+      DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-config.settings.development}
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-me}
+      DEBUG: ${DEBUG:-True}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1,backend}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_DB: ${POSTGRES_DB:-tcb}
+      POSTGRES_USER: ${POSTGRES_USER:-tcb}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tcb}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-http://localhost:3000,http://localhost:8000}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      BACKEND_PUBLIC_URL: ${BACKEND_PUBLIC_URL:-http://localhost:8000}
+      STUDIO_NOTIFY_EMAIL: ${STUDIO_NOTIFY_EMAIL:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-The Creative Branders <onboarding@resend.dev>}
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

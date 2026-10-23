@@ -1,0 +1,3 @@
+# Production: everything in base.txt, plus gunicorn (the web server).
+-r base.txt
+gunicorn==23.0.0
