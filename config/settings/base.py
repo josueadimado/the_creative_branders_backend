@@ -156,7 +156,7 @@ STUDIO_NOTIFY_EMAIL = env("STUDIO_NOTIFY_EMAIL", default="")
 # Or set EMAIL_HOST / EMAIL_PORT / EMAIL_HOST_USER / EMAIL_HOST_PASSWORD for any SMTP.
 DEFAULT_FROM_EMAIL = env(
     "DEFAULT_FROM_EMAIL",
-    default="The Creative Branders <onboarding@resend.dev>",
+    default="hello@thecreativebranders.com",
 )
 RESEND_API_KEY = env("RESEND_API_KEY", default="")
 
