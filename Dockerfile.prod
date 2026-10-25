@@ -9,18 +9,23 @@ WORKDIR /app
 
 # Copy both files: production.txt includes "-r base.txt".
 COPY requirements/base.txt requirements/production.txt /app/requirements/
-RUN pip install --no-cache-dir -r requirements/production.txt
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends gosu \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir -r requirements/production.txt
 
 COPY . .
 
 # Create a non-root user and give it ownership of the app directory
 # (needed so collectstatic can write into /app/staticfiles at startup).
+# The entrypoint stays root only long enough to fix a new media volume,
+# then it switches to this user.
 RUN addgroup --system django \
     && adduser --system --ingroup django django \
-    && mkdir -p /app/staticfiles \
-    && chown -R django:django /app
-
-USER django
+    && mkdir -p /app/staticfiles /app/cache /app/media \
+    && chown -R django:django /app \
+    && chmod +x /app/scripts/entrypoint.prod.sh
 
 EXPOSE 8000
+ENTRYPOINT ["/app/scripts/entrypoint.prod.sh"]
 CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "120"]

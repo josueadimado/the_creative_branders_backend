@@ -1,5 +1,5 @@
 """
-Database tables for the three public forms on the website.
+Database tables for the public forms on the website.
 
 Each row is created when a visitor submits a form. Staff review them
 in Django admin — there is no public "list" API.
@@ -68,6 +68,21 @@ class WaitlistSignup(models.Model):
         ordering = ["-created_at"]
         verbose_name = "Waitlist signup"
         verbose_name_plural = "Waitlist signups"
+
+    def __str__(self) -> str:
+        return self.email
+
+
+class NewsletterSignup(models.Model):
+    """Footer signup for studio news and updates."""
+
+    email = models.EmailField(unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Newsletter signup"
+        verbose_name_plural = "Newsletter signups"
 
     def __str__(self) -> str:
         return self.email

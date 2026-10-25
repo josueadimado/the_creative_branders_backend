@@ -7,5 +7,6 @@ venv/
 .env.production
 staticfiles/
 media/
+cache/
 db.sqlite3
 .pytest_cache/

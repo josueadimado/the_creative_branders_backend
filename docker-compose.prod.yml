@@ -32,11 +32,14 @@ services:
       POSTGRES_HOST: db
     expose:
       - "8000"
+    volumes:
+      - media_data:/app/media
     depends_on:
       db:
         condition: service_healthy
     command: >
       sh -c "python manage.py migrate --noinput &&
+             python manage.py seed_content &&
              python manage.py collectstatic --noinput &&
              exec gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120"
     healthcheck:
@@ -55,8 +58,34 @@ services:
       - default
       - web
 
+  # Nightly database copy. Stays off the public web network.
+  # The first copy runs at startup, then one copy every 24 hours.
+  # Files older than 14 days are deleted.
+  db-backup:
+    build:
+      context: .
+      dockerfile: Dockerfile.backup
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: db
+    volumes:
+      - postgres_backups:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /backups/.last-ok"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
 volumes:
   postgres_data:
+  media_data:
+  postgres_backups:
 
 networks:
   web:

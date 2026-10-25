@@ -34,10 +34,13 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "apps.core.apps.CoreConfig",
+    "apps.content.apps.ContentConfig",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # Slows repeated wrong passwords on /admin/login/.
+    "apps.core.guards.AdminLoginGuardMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -109,7 +112,16 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+# Pictures uploaded in the content desk. The site reads them from /media/.
+MEDIA_URL = "media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Large enough for a project screenshot uploaded in the content desk.
+# The public forms still reject long messages in their own checks.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 8_000_000
+FILE_UPLOAD_MAX_MEMORY_SIZE = 8_000_000
 
 # Browser origins allowed to call this API (the React frontend).
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=["http://localhost:3000"])
@@ -140,6 +152,7 @@ REST_FRAMEWORK = {
         "anon": "60/hour",
         "inquiry": "8/hour",
         "waitlist": "8/hour",
+        "newsletter": "8/hour",
         "academy": "8/hour",
     },
 }

@@ -1,0 +1,7 @@
+# Small Postgres image whose only job is the nightly database copy.
+FROM postgres:16-alpine
+
+COPY scripts/postgres-backup.sh /usr/local/bin/postgres-backup.sh
+RUN chmod +x /usr/local/bin/postgres-backup.sh
+
+CMD ["postgres-backup.sh"]

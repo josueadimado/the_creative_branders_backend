@@ -28,6 +28,15 @@ def _admin_change_url(obj: Any) -> str:
     return path
 
 
+def _one_line(value: str, limit: int = 180) -> str:
+    """
+    A subject line must stay one line.
+    A name with a line break in it could otherwise add extra mail headers.
+    """
+    text = " ".join(str(value or "").replace("\r", " ").replace("\n", " ").split())
+    return text[:limit] or "someone"
+
+
 def _safe_send(subject: str, body: str, recipients: list[str]) -> None:
     if not recipients:
         logger.warning("Skipping email %r — no recipients configured.", subject)
@@ -63,12 +72,12 @@ def notify_inquiry(inquiry: InquiryMessage) -> None:
     ]
     if studio:
         _safe_send(
-            subject=f"New inquiry from {inquiry.name}",
+            subject=f"New inquiry from {_one_line(inquiry.name)}",
             body="\n".join(fields),
             recipients=[studio],
         )
     # Visitor confirmation — inquiry form only.
-    first_name = inquiry.name.strip().split(" ")[0] or "there"
+    first_name = _one_line(inquiry.name).split(" ")[0] or "there"
     _safe_send(
         subject="We've received your brief",
         body=(
@@ -101,6 +110,18 @@ def notify_waitlist(signup: WaitlistSignup) -> None:
     )
 
 
+def notify_newsletter(signup) -> None:
+    studio = (getattr(settings, "STUDIO_NOTIFY_EMAIL", "") or "").strip()
+    if not studio:
+        return
+    admin_url = _admin_change_url(signup)
+    _safe_send(
+        subject=f"Newsletter signup: {signup.email}",
+        body=f"Email: {signup.email}\n\nAdmin: {admin_url}",
+        recipients=[studio],
+    )
+
+
 def notify_academy(interest: AcademyInterest) -> None:
     studio = (getattr(settings, "STUDIO_NOTIFY_EMAIL", "") or "").strip()
     if not studio:
@@ -115,7 +136,7 @@ def notify_academy(interest: AcademyInterest) -> None:
         ]
     )
     _safe_send(
-        subject=f"Academy interest from {interest.name}",
+        subject=f"Academy interest from {_one_line(interest.name)}",
         body=body,
         recipients=[studio],
     )

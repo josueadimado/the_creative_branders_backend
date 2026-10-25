@@ -8,11 +8,12 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 
-from .models import AcademyInterest, InquiryMessage, WaitlistSignup
-from .notify import notify_academy, notify_inquiry, notify_waitlist
+from .models import AcademyInterest, InquiryMessage, NewsletterSignup, WaitlistSignup
+from .notify import notify_academy, notify_inquiry, notify_newsletter, notify_waitlist
 from .serializers import (
     AcademyInterestSerializer,
     InquiryMessageSerializer,
+    NewsletterSignupSerializer,
     WaitlistSignupSerializer,
 )
 
@@ -47,6 +48,27 @@ class WaitlistCreateView(generics.CreateAPIView):
             )
         signup = serializer.save()
         notify_waitlist(signup)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+
+class NewsletterCreateView(generics.CreateAPIView):
+    queryset = NewsletterSignup.objects.all()
+    serializer_class = NewsletterSignupSerializer
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "newsletter"
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data["email"]
+        if NewsletterSignup.objects.filter(email=email).exists():
+            return Response(
+                {"detail": "already_subscribed", "already_subscribed": True},
+                status=status.HTTP_200_OK,
+            )
+        signup = serializer.save()
+        notify_newsletter(signup)
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
