@@ -8,14 +8,22 @@ from django.db import models
 
 
 # Stored as the words the visitor saw, so the admin screen matches the form.
+# These must stay the same as the choices in frontend/src/content/contact.ts.
 NEED_OPTIONS = [
+    "Brand and websites",
+    "Web applications",
+    "Mobile apps",
+    "Automation and reporting",
+    "Not sure yet",
+]
+# Words from the earlier form. Still accepted so an old page can send them.
+LEGACY_NEED_OPTIONS = [
     "Website",
     "Web app",
     "Mobile app",
     "Brand and design",
     "Automation and AI",
     "Data and reporting",
-    "Not sure yet",
 ]
 TIMELINE_OPTIONS = [
     "As soon as possible",

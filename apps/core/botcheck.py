@@ -15,8 +15,12 @@ MIN_SECONDS = 2
 MAX_SECONDS = 60 * 60 * 12
 
 
-class BotCheckMixin:
-    """Add this to a form serializer. The two fields are not saved."""
+class BotCheckMixin(serializers.Serializer):
+    """Add this to a form serializer. The two fields are not saved.
+
+    It has to be a serializer, not a plain class, or Django drops the two
+    extra fields and every real submission is rejected.
+    """
 
     # Hidden on the page. Must stay empty.
     website = serializers.CharField(required=False, allow_blank=True, write_only=True)

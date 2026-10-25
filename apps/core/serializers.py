@@ -11,6 +11,7 @@ from rest_framework import serializers
 from .botcheck import BotCheckMixin
 from .models import (
     BUDGET_OPTIONS,
+    LEGACY_NEED_OPTIONS,
     NEED_OPTIONS,
     TIMELINE_OPTIONS,
     AcademyInterest,
@@ -34,6 +35,9 @@ class InquiryMessageSerializer(BotCheckMixin, serializers.ModelSerializer):
             "budget_range",
             "brief_link",
             "message",
+            # Not saved. The bot check reads these, then removes them.
+            "website",
+            "form_started",
         ]
 
     def validate_email(self, value: str) -> str:
@@ -52,12 +56,13 @@ class InquiryMessageSerializer(BotCheckMixin, serializers.ModelSerializer):
     def validate_needs(self, value):
         if not isinstance(value, list) or not value:
             raise serializers.ValidationError("Choose what you need.")
+        allowed = set(NEED_OPTIONS) | set(LEGACY_NEED_OPTIONS)
         # One of each listed choice is enough. A long repeated list is not a person.
-        if len(value) > len(NEED_OPTIONS):
-            raise serializers.ValidationError("Choose a listed option.")
-        unknown = [item for item in value if item not in NEED_OPTIONS]
+        if len(value) > len(allowed):
+            raise serializers.ValidationError("Choose what you need from the list.")
+        unknown = [item for item in value if item not in allowed]
         if unknown:
-            raise serializers.ValidationError("Choose a listed option.")
+            raise serializers.ValidationError("Choose what you need from the list.")
         return value
 
     def validate_message(self, value: str) -> str:
@@ -76,7 +81,7 @@ class InquiryMessageSerializer(BotCheckMixin, serializers.ModelSerializer):
 class WaitlistSignupSerializer(BotCheckMixin, serializers.ModelSerializer):
     class Meta:
         model = WaitlistSignup
-        fields = ["email", "name"]
+        fields = ["email", "name", "website", "form_started"]
 
     def validate_email(self, value: str) -> str:
         return value.strip().lower()
@@ -85,7 +90,7 @@ class WaitlistSignupSerializer(BotCheckMixin, serializers.ModelSerializer):
 class NewsletterSignupSerializer(BotCheckMixin, serializers.ModelSerializer):
     class Meta:
         model = NewsletterSignup
-        fields = ["email"]
+        fields = ["email", "website", "form_started"]
 
     def validate_email(self, value: str) -> str:
         return value.strip().lower()
@@ -102,7 +107,7 @@ def _limited_text(value: str, limit: int, message: str) -> str:
 class AcademyInterestSerializer(BotCheckMixin, serializers.ModelSerializer):
     class Meta:
         model = AcademyInterest
-        fields = ["name", "email", "message"]
+        fields = ["name", "email", "message", "website", "form_started"]
 
     def validate_email(self, value: str) -> str:
         return value.strip().lower()
