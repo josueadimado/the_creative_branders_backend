@@ -1,4 +1,5 @@
 # Production compose for the Hetzner server.
+# GitHub Actions builds the API image and the backup image. This file only downloads them.
 # Caddy (on the host) sits on the Docker network named web.
 # The database stays on the private default network only.
 # No published ports — Caddy reverse-proxies to the container by name.
@@ -21,9 +22,8 @@ services:
 
   tcb-backend:
     container_name: tcb-backend
-    build:
-      context: .
-      dockerfile: Dockerfile.prod
+    image: ghcr.io/josueadimado/the_creative_branders_backend:main
+    pull_policy: always
     restart: unless-stopped
     stop_grace_period: 30s
     env_file:
@@ -62,9 +62,8 @@ services:
   # The first copy runs at startup, then one copy every 24 hours.
   # Files older than 14 days are deleted.
   db-backup:
-    build:
-      context: .
-      dockerfile: Dockerfile.backup
+    image: ghcr.io/josueadimado/the_creative_branders_backend:backup
+    pull_policy: always
     restart: unless-stopped
     env_file:
       - .env

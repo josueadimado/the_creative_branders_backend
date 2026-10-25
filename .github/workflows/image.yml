@@ -1,0 +1,57 @@
+# Builds the API image and the backup image on GitHub. The server only downloads them.
+name: Build API image
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: api-image
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE: ghcr.io/josueadimado/the_creative_branders_backend
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v4
+
+      - name: Sign in to GitHub's image store
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish the API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.prod
+          push: true
+          platforms: linux/amd64
+          tags: ${{ env.IMAGE }}:main
+          labels: |
+            org.opencontainers.image.source=https://github.com/josueadimado/the_creative_branders_backend
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and publish the backup image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.backup
+          push: true
+          platforms: linux/amd64
+          tags: ${{ env.IMAGE }}:backup
+          labels: |
+            org.opencontainers.image.source=https://github.com/josueadimado/the_creative_branders_backend
