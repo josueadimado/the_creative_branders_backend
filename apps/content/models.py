@@ -129,6 +129,7 @@ class Project(models.Model):
     stack = models.JSONField(default=list, blank=True)
     results = models.JSONField(default=list, blank=True, help_text="Short benefits shown on the project page.")
     device = models.CharField(max_length=20, choices=DEVICE_CHOICES, default="browser")
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["position", "public_name"]

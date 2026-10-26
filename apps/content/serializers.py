@@ -34,6 +34,7 @@ class ProjectSerializer(serializers.ModelSerializer):
     logo = serializers.SerializerMethodField()
     images = serializers.SerializerMethodField()
     results = serializers.SerializerMethodField()
+    updated = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
@@ -61,6 +62,7 @@ class ProjectSerializer(serializers.ModelSerializer):
             "results",
             "images",
             "device",
+            "updated",
         ]
 
     def get_logo(self, project) -> str:
@@ -72,6 +74,10 @@ class ProjectSerializer(serializers.ModelSerializer):
     def get_images(self, project) -> list[str]:
         request = self.context.get("request")
         return [_shot_url(shot, request) for shot in project.shots.all()]
+
+    def get_updated(self, project) -> str:
+        # The day the project was last saved. The sitemap uses this as lastmod.
+        return project.updated_at.date().isoformat()
 
 
 class PageSerializer(serializers.ModelSerializer):
