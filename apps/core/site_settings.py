@@ -25,7 +25,8 @@ PHONE_E164 = "+233206783693"
 PHONE_DISPLAY = "+233 20 678 3693"
 WHATSAPP_NUMBER = "233206783693"
 WHATSAPP_DEFAULT_MESSAGE = "Hello The Creative Branders, I'd like to talk about a project."
-BOOKING_URL = "[BOOKING URL e.g. Cal.com or Calendly]"
+# A real booking page. Leave this blank and the audit button opens WhatsApp.
+BOOKING_URL = ""
 SITE_URL = "https://thecreativebranders.com"
 
 SOCIAL = {
