@@ -14,6 +14,7 @@ from django.core.mail import send_mail
 from django.urls import reverse
 
 from .models import AcademyInterest, InquiryMessage, WaitlistSignup
+from .site_settings import BRAND_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +86,7 @@ def notify_inquiry(inquiry: InquiryMessage) -> None:
             "We've received your brief and will reply within one business day, "
             "usually with a few questions or a time to talk. "
             "If anything changes in the meantime, just reply to this email.\n\n"
-            "The Creative Branders"
+            f"{BRAND_NAME}"
         ),
         recipients=[inquiry.email],
     )

@@ -9,6 +9,7 @@ Environment variables are read with django-environ (see .env.example).
 from pathlib import Path
 
 import environ
+from apps.core.site_settings import from_address
 
 # Folder that contains manage.py
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -171,7 +172,7 @@ STUDIO_NOTIFY_EMAIL = env("STUDIO_NOTIFY_EMAIL", default="")
 # Or set EMAIL_HOST / EMAIL_PORT / EMAIL_HOST_USER / EMAIL_HOST_PASSWORD for any SMTP.
 DEFAULT_FROM_EMAIL = env(
     "DEFAULT_FROM_EMAIL",
-    default="hello@thecreativebranders.com",
+    default=from_address(),
 )
 RESEND_API_KEY = env("RESEND_API_KEY", default="")
 

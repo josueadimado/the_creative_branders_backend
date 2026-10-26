@@ -12,7 +12,9 @@ from django.contrib import admin
 from django.urls import include, path
 from django.views.static import serve
 
-admin.site.site_header = "The Creative Branders"
+from apps.core.site_settings import BRAND_NAME
+
+admin.site.site_header = BRAND_NAME
 admin.site.site_title = "TCB content desk"
 admin.site.index_title = "Pages, projects, notes, and messages"
 

@@ -6,6 +6,8 @@ Form messages (inquiries, waitlist, newsletter, academy) stay in the intake app.
 """
 from django.db import models
 
+from apps.core.site_settings import BRAND_NAME, EMAIL
+
 
 FAMILY_CHOICES = [
     ("brand-websites", "Brand and websites"),
@@ -28,15 +30,16 @@ DEVICE_CHOICES = [
 class SiteSettings(models.Model):
     """One row for the studio name, the search description, and the social links."""
 
-    name = models.CharField(max_length=120, default="The Creative Branders")
+    name = models.CharField(max_length=120, default=BRAND_NAME)
     tagline = models.CharField(max_length=160, default="Designed for intelligent growth.")
     description = models.TextField(
         help_text="The sentence search engines and the homepage use to describe the studio.",
     )
-    email = models.EmailField(default="hello@thecreativebranders.com")
+    email = models.EmailField(default=EMAIL)
     linkedin_url = models.URLField(blank=True)
     instagram_url = models.URLField(blank=True)
     facebook_url = models.URLField(blank=True)
+    # The X account is retired. The column stays so older databases do not lose a field.
     x_url = models.URLField(blank=True)
 
     class Meta:

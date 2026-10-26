@@ -15,6 +15,7 @@ from pathlib import Path
 from django.core.management.base import BaseCommand
 
 from apps.content.models import Note, Page, Project, ProjectShot, SiteSettings
+from apps.core.site_settings import BRAND_NAME, EMAIL, SOCIAL
 
 SEED_DIR = Path(__file__).resolve().parents[2] / "seed"
 REPO_ROOT = Path(__file__).resolve().parents[5]
@@ -67,13 +68,13 @@ PAGES = [
     {
         "slug": "about",
         "seo_title": "About the studio",
-        "seo_description": "The Creative Branders is a design and development studio for growing businesses. We design and build websites, apps and the systems behind them.",
+        "seo_description": f"{BRAND_NAME} is a design and development studio for growing businesses. We design and build websites, apps and the systems behind them.",
         "kicker": "About the studio",
         "headline": "We're the strategy and technology partner behind your business.",
         "lede": "From the first idea to the systems you rely on every day, we stay with you as your business grows.",
         "section_title": "Why we exist",
         "paragraph_1": "A lot of growing businesses run on the same setup. A website someone built a few years ago. Bookings in a spreadsheet or a notebook. Customers in WhatsApp. Payments in a separate app. It works until the business grows, and then the owner spends their evenings holding it all together.",
-        "paragraph_2": "Fixing that properly used to mean hiring an agency built for much larger companies. We started The Creative Branders so growing businesses could get the same standard of work at a size and price that fits them: the website, the apps and the systems behind them, planned together.",
+        "paragraph_2": f"Fixing that properly used to mean hiring an agency built for much larger companies. We started {BRAND_NAME} so growing businesses could get the same standard of work at a size and price that fits them: the website, the apps and the systems behind them, planned together.",
         "paragraph_3": "One person leads your project from the first call to launch. If it needs a mobile developer, a payments specialist or a data analyst, we bring in people we've worked with before. Everything we do shows up in our client portal, so you always know what's been done and what's next.",
         "stat_1_value": "6+",
         "stat_1_label": "Years in technology",
@@ -135,14 +136,14 @@ class Command(BaseCommand):
         SiteSettings.objects.update_or_create(
             pk=1,
             defaults={
-                "name": "The Creative Branders",
+                "name": BRAND_NAME,
                 "tagline": "Designed for intelligent growth.",
                 "description": PAGES[0]["seo_description"],
-                "email": "hello@thecreativebranders.com",
-                "linkedin_url": "https://www.linkedin.com/company/thecreativebranders/",
-                "instagram_url": "https://www.instagram.com/thecreativebranders/",
-                "facebook_url": "https://www.facebook.com/thecreativebranders",
-                "x_url": "https://x.com/theCBranders",
+                "email": EMAIL,
+                "linkedin_url": SOCIAL["linkedin"],
+                "instagram_url": SOCIAL["instagram"],
+                "facebook_url": SOCIAL["facebook"],
+                "x_url": "",
             },
         )
 
