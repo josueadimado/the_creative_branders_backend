@@ -15,7 +15,7 @@ from django.core.mail import EmailMessage
 from django.urls import reverse
 
 from .models import AcademyInterest, InquiryMessage, WaitlistSignup
-from .site_settings import EMAIL, LEGAL_NAME, SITE_URL, WHATSAPP_NUMBER
+from .site_settings import EMAIL, LEGAL_NAME, PHONE_DISPLAY, SITE_URL, WHATSAPP_DISPLAY, WHATSAPP_NUMBER
 
 logger = logging.getLogger(__name__)
 
@@ -168,6 +168,8 @@ def _visitor_confirmation(inquiry: InquiryMessage, service: str, budget: str) ->
         "What happens next",
         "We reply within one business day.",
         "",
+        f"Call: {PHONE_DISPLAY}",
+        f"WhatsApp: {WHATSAPP_DISPLAY}",
         "Want to talk sooner? Message us on WhatsApp",
         _whatsapp(WHATSAPP_NUMBER),
         "",

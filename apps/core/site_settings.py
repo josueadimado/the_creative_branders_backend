@@ -21,9 +21,11 @@ ADDRESS = {
 }
 
 EMAIL = "hello@thecreativebranders.com"
-PHONE_E164 = "+233206783693"
-PHONE_DISPLAY = "+233 20 678 3693"
+# This number can receive calls. The WhatsApp number below cannot.
+PHONE_E164 = "+233598158589"
+PHONE_DISPLAY = "+233 59 815 8589"
 WHATSAPP_NUMBER = "233206783693"
+WHATSAPP_DISPLAY = "+233 20 678 3693"
 WHATSAPP_DEFAULT_MESSAGE = "Hello The Creative Branders, I'd like to talk about a project."
 SITE_URL = "https://thecreativebranders.com"
 
