@@ -292,6 +292,7 @@ class InquiryDeskSerializer(serializers.ModelSerializer):
             "needs",
             "timeline",
             "budget_range",
+            "budget_currency",
             "brief_link",
             "message",
             "reviewed",

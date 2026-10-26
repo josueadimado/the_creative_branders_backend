@@ -11,7 +11,9 @@ from rest_framework import serializers
 
 from .botcheck import BotCheckMixin
 from .models import (
-    BUDGET_OPTIONS,
+    BUDGET_OPTIONS_GHS,
+    BUDGET_OPTIONS_USD,
+    CURRENCY_OPTIONS,
     LEGACY_NEED_OPTIONS,
     NEED_OPTIONS,
     TIMELINE_OPTIONS,
@@ -52,6 +54,7 @@ class InquiryMessageSerializer(ConsentRecordMixin, BotCheckMixin, serializers.Mo
             "needs",
             "timeline",
             "budget_range",
+            "budget_currency",
             "brief_link",
             "message",
             "consent",
@@ -69,9 +72,25 @@ class InquiryMessageSerializer(ConsentRecordMixin, BotCheckMixin, serializers.Mo
         return value
 
     def validate_budget_range(self, value: str) -> str:
-        if value and value not in BUDGET_OPTIONS:
+        if value and value not in BUDGET_OPTIONS_GHS and value not in BUDGET_OPTIONS_USD:
             raise serializers.ValidationError("Choose a listed budget range.")
         return value
+
+    def validate_budget_currency(self, value: str) -> str:
+        if value and value not in CURRENCY_OPTIONS:
+            raise serializers.ValidationError("Choose cedis or dollars.")
+        return value
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        budget = attrs.get("budget_range") or ""
+        currency = attrs.get("budget_currency") or ""
+        # A cedi band must be saved as GHS, and a dollar band as USD.
+        if budget in BUDGET_OPTIONS_GHS and currency != "GHS":
+            raise serializers.ValidationError({"budget_currency": "Choose cedis for that budget range."})
+        if budget in BUDGET_OPTIONS_USD and currency != "USD":
+            raise serializers.ValidationError({"budget_currency": "Choose dollars for that budget range."})
+        return attrs
 
     def validate_needs(self, value):
         if not isinstance(value, list) or not value:

@@ -6,8 +6,8 @@ from .models import AcademyInterest, InquiryMessage, NewsletterSignup, WaitlistS
 
 @admin.register(InquiryMessage)
 class InquiryMessageAdmin(admin.ModelAdmin):
-    list_display = ("name", "email", "country", "timeline", "budget_range", "created_at")
-    list_filter = ("timeline", "budget_range", "country", "created_at")
+    list_display = ("name", "email", "country", "timeline", "budget_currency", "budget_range", "created_at")
+    list_filter = ("timeline", "budget_currency", "budget_range", "country", "created_at")
     search_fields = ("name", "email", "company", "country", "phone", "message")
     readonly_fields = ("consent_at", "created_at")
 

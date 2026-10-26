@@ -31,7 +31,14 @@ TIMELINE_OPTIONS = [
     "In 3 to 6 months",
     "Just exploring",
 ]
-BUDGET_OPTIONS = [
+BUDGET_OPTIONS_GHS = [
+    "Under 25,000",
+    "25,000–75,000",
+    "75,000–200,000",
+    "200,000–500,000",
+    "Over 500,000",
+]
+BUDGET_OPTIONS_USD = [
     "Under $2,000",
     "$2,000 to $5,000",
     "$5,000 to $15,000",
@@ -39,6 +46,9 @@ BUDGET_OPTIONS = [
     "Over $40,000",
     "I'd rather discuss it",
 ]
+# Both lists together, so an old dollar range and a new cedi range are both allowed.
+BUDGET_OPTIONS = BUDGET_OPTIONS_GHS + BUDGET_OPTIONS_USD
+CURRENCY_OPTIONS = ["GHS", "USD"]
 
 
 class InquiryMessage(models.Model):
@@ -52,6 +62,8 @@ class InquiryMessage(models.Model):
     needs = models.JSONField(default=list, blank=True)
     timeline = models.CharField(max_length=80, blank=True)
     budget_range = models.CharField(max_length=80, blank=True)
+    # GHS or USD. Blank on briefs saved before the currency switch existed.
+    budget_currency = models.CharField(max_length=3, blank=True)
     brief_link = models.CharField(max_length=300, blank=True)
     message = models.TextField()
     reviewed = models.BooleanField(default=False)
