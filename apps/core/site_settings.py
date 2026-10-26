@@ -8,12 +8,12 @@ BRAND_NAME = "The Creative Branders"
 LEGAL_NAME = "The Creative Branders LTD"
 JURISDICTION = "Ghana"
 REGISTRATION_AUTHORITY = "Office of the Registrar of Companies (ORC), Ghana"
-REGISTRATION_NUMBER = "[ORC REGISTRATION NUMBER]"
-TIN = "[TIN]"
-DPC_REGISTRATION = "[DATA PROTECTION COMMISSION REGISTRATION NUMBER]"
+# Leave blank and the legal pages skip this line.
+REGISTRATION_NUMBER = ""
+# Street or GhanaPost address. Leave blank and the legal pages show only Accra, Ghana.
+STREET_ADDRESS = ""
 
 ADDRESS = {
-    "street": "[STREET ADDRESS / DIGITAL ADDRESS e.g. GA-XXX-XXXX]",
     "city": "Accra",
     "region": "Greater Accra",
     "country": "Ghana",
