@@ -8,15 +8,19 @@ from __future__ import annotations
 
 import logging
 from typing import Any
+from urllib.parse import quote
 
 from django.conf import settings
-from django.core.mail import send_mail
+from django.core.mail import EmailMessage
 from django.urls import reverse
 
 from .models import AcademyInterest, InquiryMessage, WaitlistSignup
-from .site_settings import BRAND_NAME
+from .site_settings import BOOKING_URL, EMAIL, LEGAL_NAME, SITE_URL, WHATSAPP_NUMBER
 
 logger = logging.getLogger(__name__)
+
+# Same sentence the website uses when the booking page is still blank.
+AUDIT_MESSAGE = "Hello, I'd like to book a free 20-minute systems audit."
 
 
 def _admin_change_url(obj: Any) -> str:
@@ -38,19 +42,57 @@ def _one_line(value: str, limit: int = 180) -> str:
     return text[:limit] or "someone"
 
 
+def _digits(value: str) -> str:
+    return "".join(ch for ch in (value or "") if ch.isdigit())
+
+
+def _whatsapp(number: str, message: str = "") -> str:
+    """A wa.me link. The number is digits only, with the country code already included."""
+    digits = _digits(number)
+    if len(digits) < 8:
+        return ""
+    url = f"https://wa.me/{digits}"
+    if message:
+        return f"{url}?text={quote(message)}"
+    return url
+
+
+def _booking_link() -> str:
+    """The booking page, or WhatsApp with the audit sentence when that page is blank."""
+    url = (BOOKING_URL or "").strip()
+    if url and not url.startswith("["):
+        return url
+    return _whatsapp(WHATSAPP_NUMBER, AUDIT_MESSAGE)
+
+
+def _budget_label(inquiry: InquiryMessage) -> str:
+    band = (inquiry.budget_range or "").strip()
+    if not band:
+        return "not set"
+    if inquiry.budget_currency == "GHS":
+        return f"GHS {band}"
+    return band
+
+
+def _service_label(inquiry: InquiryMessage) -> str:
+    needs = [str(item).strip() for item in (inquiry.needs or []) if str(item).strip()]
+    return ", ".join(needs) or "Not specified"
+
+
 def _safe_send(subject: str, body: str, recipients: list[str]) -> None:
     if not recipients:
         logger.warning("Skipping email %r — no recipients configured.", subject)
         return
-    from_email = settings.DEFAULT_FROM_EMAIL
+    message = EmailMessage(
+        subject=subject,
+        body=body,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=recipients,
+        # Replies land in the studio inbox, not a no-reply address.
+        reply_to=[EMAIL],
+    )
     try:
-        send_mail(
-            subject=subject,
-            message=body,
-            from_email=from_email,
-            recipient_list=recipients,
-            fail_silently=False,
-        )
+        message.send(fail_silently=False)
     except Exception:
         logger.exception("Failed to send email %r to %s", subject, recipients)
 
@@ -58,38 +100,68 @@ def _safe_send(subject: str, body: str, recipients: list[str]) -> None:
 def notify_inquiry(inquiry: InquiryMessage) -> None:
     studio = (getattr(settings, "STUDIO_NOTIFY_EMAIL", "") or "").strip()
     admin_url = _admin_change_url(inquiry)
+    service = _service_label(inquiry)
+    budget = _budget_label(inquiry)
+    visitor_wa = _whatsapp(inquiry.phone)
     fields = [
         f"Name: {inquiry.name}",
         f"Email: {inquiry.email}",
         f"WhatsApp / phone: {inquiry.phone or '(not provided)'}",
+        f"WhatsApp them: {visitor_wa or '(no number given)'}",
         f"Company: {inquiry.company or '(not provided)'}",
         f"Country: {inquiry.country or '(not provided)'}",
-        f"Needs: {', '.join(inquiry.needs) if inquiry.needs else '(not provided)'}",
+        f"Needs: {service if inquiry.needs else '(not provided)'}",
         f"Timeline: {inquiry.timeline or '(not provided)'}",
-        f"Budget range: {inquiry.budget_range or '(not provided)'}",
+        f"Budget: {budget}",
         f"Link: {inquiry.brief_link or '(not provided)'}",
         f"Message:\n{inquiry.message}",
         f"\nAdmin: {admin_url}",
     ]
     if studio:
         _safe_send(
-            subject=f"New inquiry from {_one_line(inquiry.name)}",
+            subject=_one_line(f"New brief: {inquiry.name} — {service} — {budget}"),
             body="\n".join(fields),
             recipients=[studio],
         )
-    # Visitor confirmation — inquiry form only.
-    first_name = _one_line(inquiry.name).split(" ")[0] or "there"
     _safe_send(
         subject="We've received your brief",
-        body=(
-            f"Hi {first_name}, thanks for getting in touch. "
-            "We've received your brief and will reply within one business day, "
-            "usually with a few questions or a time to talk. "
-            "If anything changes in the meantime, just reply to this email.\n\n"
-            f"{BRAND_NAME}"
-        ),
+        body=_visitor_confirmation(inquiry, service, budget),
         recipients=[inquiry.email],
     )
+
+
+def _visitor_confirmation(inquiry: InquiryMessage, service: str, budget: str) -> str:
+    """The note the visitor gets. It repeats what they sent and the next step."""
+    first_name = _one_line(inquiry.name).split(" ")[0] or "there"
+    privacy = f"{SITE_URL.rstrip('/')}/privacy"
+    lines = [
+        f"Hi {first_name},",
+        "",
+        "Thanks for your brief. Here is what you sent us.",
+        "",
+        f"Name: {inquiry.name}",
+        f"Email: {inquiry.email}",
+        f"WhatsApp / phone: {inquiry.phone or '(not provided)'}",
+        f"Company: {inquiry.company or '(not provided)'}",
+        f"Country: {inquiry.country or '(not provided)'}",
+        f"What you need: {service}",
+        f"When to start: {inquiry.timeline or '(not provided)'}",
+        f"Budget: {budget}",
+        f"Link: {inquiry.brief_link or '(not provided)'}",
+        "Message:",
+        inquiry.message,
+        "",
+        "What happens next",
+        "We reply within one business day.",
+        "",
+        f"Message us on WhatsApp: {_whatsapp(WHATSAPP_NUMBER)}",
+        f"Book a free 20-minute systems audit: {_booking_link()}",
+        "",
+        LEGAL_NAME,
+        "Registered in Ghana",
+        f"Privacy: {privacy}",
+    ]
+    return "\n".join(lines)
 
 
 def notify_waitlist(signup: WaitlistSignup) -> None:
