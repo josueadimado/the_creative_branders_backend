@@ -68,7 +68,13 @@ def _service_label(inquiry: InquiryMessage) -> str:
     return ", ".join(needs) or "Not specified"
 
 
-def _safe_send(subject: str, body: str, recipients: list[str]) -> None:
+def _reply_address(address: str | None) -> str:
+    """A visitor address when we have one. Otherwise the studio inbox."""
+    cleaned = " ".join(str(address or "").split())
+    return cleaned or EMAIL
+
+
+def _safe_send(subject: str, body: str, recipients: list[str], reply_to: str | None = None) -> None:
     if not recipients:
         logger.warning("Skipping email %r — no recipients configured.", subject)
         return
@@ -77,8 +83,8 @@ def _safe_send(subject: str, body: str, recipients: list[str]) -> None:
         body=body,
         from_email=settings.DEFAULT_FROM_EMAIL,
         to=recipients,
-        # Replies land in the studio inbox, not a no-reply address.
-        reply_to=[EMAIL],
+        # Studio mail replies to the lead. Mail sent to a visitor replies to the studio.
+        reply_to=[_reply_address(reply_to)],
     )
     try:
         message.send(fail_silently=False)
@@ -111,7 +117,9 @@ def notify_inquiry(inquiry: InquiryMessage) -> None:
             subject=_one_line(f"New brief: {inquiry.name} — {service} — {budget}"),
             body="\n".join(fields),
             recipients=[studio],
+            reply_to=inquiry.email,
         )
+    # This copy goes to the visitor, so a reply comes back to the studio.
     _safe_send(
         subject="We've received your brief",
         body=_visitor_confirmation(inquiry, service, budget),
@@ -169,6 +177,7 @@ def notify_waitlist(signup: WaitlistSignup) -> None:
         subject=f"SmartCRM waitlist: {signup.email}",
         body=body,
         recipients=[studio],
+        reply_to=signup.email,
     )
 
 
@@ -201,4 +210,5 @@ def notify_academy(interest: AcademyInterest) -> None:
         subject=f"Academy interest from {_one_line(interest.name)}",
         body=body,
         recipients=[studio],
+        reply_to=interest.email,
     )
