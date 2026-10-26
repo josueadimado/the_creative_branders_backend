@@ -81,3 +81,18 @@ def _add_try(key: str) -> None:
         cache.set(key, _tries(key) + 1, WINDOW_SECONDS)
     except Exception:
         return
+
+
+def login_blocked(kind: str, request) -> bool:
+    """True when this address has guessed the password too many times."""
+    return _tries(f"{kind}-login-fails:{client_ip(request)}") >= MAX_TRIES
+
+
+def note_login_failure(kind: str, request) -> None:
+    """Count one wrong password for the studio desk or the Django screen."""
+    _add_try(f"{kind}-login-fails:{client_ip(request)}")
+
+
+def clear_login_failures(kind: str, request) -> None:
+    """A correct password wipes the counter for that address."""
+    cache.delete(f"{kind}-login-fails:{client_ip(request)}")
