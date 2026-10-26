@@ -15,12 +15,9 @@ from django.core.mail import EmailMessage
 from django.urls import reverse
 
 from .models import AcademyInterest, InquiryMessage, WaitlistSignup
-from .site_settings import BOOKING_URL, EMAIL, LEGAL_NAME, SITE_URL, WHATSAPP_NUMBER
+from .site_settings import EMAIL, LEGAL_NAME, SITE_URL, WHATSAPP_NUMBER
 
 logger = logging.getLogger(__name__)
-
-# Same sentence the website uses when the booking page is still blank.
-AUDIT_MESSAGE = "Hello, I'd like to book a free 20-minute systems audit."
 
 
 def _admin_change_url(obj: Any) -> str:
@@ -55,14 +52,6 @@ def _whatsapp(number: str, message: str = "") -> str:
     if message:
         return f"{url}?text={quote(message)}"
     return url
-
-
-def _booking_link() -> str:
-    """The booking page, or WhatsApp with the audit sentence when that page is blank."""
-    url = (BOOKING_URL or "").strip()
-    if url and not url.startswith("["):
-        return url
-    return _whatsapp(WHATSAPP_NUMBER, AUDIT_MESSAGE)
 
 
 def _budget_label(inquiry: InquiryMessage) -> str:
@@ -154,8 +143,8 @@ def _visitor_confirmation(inquiry: InquiryMessage, service: str, budget: str) ->
         "What happens next",
         "We reply within one business day.",
         "",
-        f"Message us on WhatsApp: {_whatsapp(WHATSAPP_NUMBER)}",
-        f"Book a free 20-minute systems audit: {_booking_link()}",
+        "Want to talk sooner? Message us on WhatsApp",
+        _whatsapp(WHATSAPP_NUMBER),
         "",
         LEGAL_NAME,
         "Registered in Ghana",
