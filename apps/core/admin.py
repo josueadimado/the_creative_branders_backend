@@ -9,25 +9,25 @@ class InquiryMessageAdmin(admin.ModelAdmin):
     list_display = ("name", "email", "country", "timeline", "budget_range", "created_at")
     list_filter = ("timeline", "budget_range", "country", "created_at")
     search_fields = ("name", "email", "company", "country", "phone", "message")
-    readonly_fields = ("created_at",)
+    readonly_fields = ("consent_at", "created_at")
 
 
 @admin.register(WaitlistSignup)
 class WaitlistSignupAdmin(admin.ModelAdmin):
     list_display = ("email", "name", "created_at")
     search_fields = ("email", "name")
-    readonly_fields = ("created_at",)
+    readonly_fields = ("consent_at", "created_at")
 
 
 @admin.register(NewsletterSignup)
 class NewsletterSignupAdmin(admin.ModelAdmin):
     list_display = ("email", "created_at")
     search_fields = ("email",)
-    readonly_fields = ("created_at",)
+    readonly_fields = ("consent_at", "created_at")
 
 
 @admin.register(AcademyInterest)
 class AcademyInterestAdmin(admin.ModelAdmin):
     list_display = ("name", "email", "created_at")
     search_fields = ("name", "email", "message")
-    readonly_fields = ("created_at",)
+    readonly_fields = ("consent_at", "created_at")

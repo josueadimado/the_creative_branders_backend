@@ -6,6 +6,7 @@ The views below only accept POST (create), never GET lists.
 """
 from urllib.parse import urlparse
 
+from django.utils import timezone
 from rest_framework import serializers
 
 from .botcheck import BotCheckMixin
@@ -21,7 +22,25 @@ from .models import (
 )
 
 
-class InquiryMessageSerializer(BotCheckMixin, serializers.ModelSerializer):
+class ConsentRecordMixin(serializers.Serializer):
+    """The visitor must tick the privacy box. We store the time on the server."""
+
+    consent = serializers.BooleanField(write_only=True)
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        if attrs.pop("consent", False) is not True:
+            raise serializers.ValidationError(
+                {"consent": "Please agree that we may use these details to reply to you."}
+            )
+        return attrs
+
+    def create(self, validated_data):
+        validated_data["consent_at"] = timezone.now()
+        return super().create(validated_data)
+
+
+class InquiryMessageSerializer(ConsentRecordMixin, BotCheckMixin, serializers.ModelSerializer):
     class Meta:
         model = InquiryMessage
         fields = [
@@ -35,6 +54,7 @@ class InquiryMessageSerializer(BotCheckMixin, serializers.ModelSerializer):
             "budget_range",
             "brief_link",
             "message",
+            "consent",
             # Not saved. The bot check reads these, then removes them.
             "website",
             "form_started",
@@ -78,19 +98,20 @@ class InquiryMessageSerializer(BotCheckMixin, serializers.ModelSerializer):
         return value
 
 
-class WaitlistSignupSerializer(BotCheckMixin, serializers.ModelSerializer):
+class WaitlistSignupSerializer(ConsentRecordMixin, BotCheckMixin, serializers.ModelSerializer):
     class Meta:
         model = WaitlistSignup
-        fields = ["email", "name", "website", "form_started"]
+        fields = ["email", "name", "consent", "website", "form_started"]
 
     def validate_email(self, value: str) -> str:
         return value.strip().lower()
 
 
-class NewsletterSignupSerializer(BotCheckMixin, serializers.ModelSerializer):
+class NewsletterSignupSerializer(ConsentRecordMixin, BotCheckMixin, serializers.ModelSerializer):
+    """There is no public newsletter form yet. When one is added, it must send consent."""
     class Meta:
         model = NewsletterSignup
-        fields = ["email", "website", "form_started"]
+        fields = ["email", "consent", "website", "form_started"]
 
     def validate_email(self, value: str) -> str:
         return value.strip().lower()
@@ -104,10 +125,10 @@ def _limited_text(value: str, limit: int, message: str) -> str:
     return text
 
 
-class AcademyInterestSerializer(BotCheckMixin, serializers.ModelSerializer):
+class AcademyInterestSerializer(ConsentRecordMixin, BotCheckMixin, serializers.ModelSerializer):
     class Meta:
         model = AcademyInterest
-        fields = ["name", "email", "message", "website", "form_started"]
+        fields = ["name", "email", "message", "consent", "website", "form_started"]
 
     def validate_email(self, value: str) -> str:
         return value.strip().lower()

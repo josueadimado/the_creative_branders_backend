@@ -55,6 +55,12 @@ class InquiryMessage(models.Model):
     brief_link = models.CharField(max_length=300, blank=True)
     message = models.TextField()
     reviewed = models.BooleanField(default=False)
+    # Empty on older rows that were saved before the privacy box existed.
+    consent_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the visitor agreed we may use these details to reply.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -71,6 +77,11 @@ class WaitlistSignup(models.Model):
 
     email = models.EmailField(unique=True)
     name = models.CharField(max_length=120, blank=True)
+    consent_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the visitor agreed we may use these details to reply.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -86,6 +97,11 @@ class NewsletterSignup(models.Model):
     """Footer signup for studio news and updates."""
 
     email = models.EmailField(unique=True)
+    consent_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the visitor agreed we may use these details to reply.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -103,6 +119,11 @@ class AcademyInterest(models.Model):
     name = models.CharField(max_length=120)
     email = models.EmailField()
     message = models.TextField(blank=True)
+    consent_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the visitor agreed we may use these details to reply.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

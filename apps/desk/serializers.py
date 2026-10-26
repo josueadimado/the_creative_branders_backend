@@ -295,6 +295,7 @@ class InquiryDeskSerializer(serializers.ModelSerializer):
             "brief_link",
             "message",
             "reviewed",
+            "consent_at",
             "created_at",
         ]
 
@@ -302,16 +303,16 @@ class InquiryDeskSerializer(serializers.ModelSerializer):
 class WaitlistDeskSerializer(serializers.ModelSerializer):
     class Meta:
         model = WaitlistSignup
-        fields = ["id", "email", "name", "created_at"]
+        fields = ["id", "email", "name", "consent_at", "created_at"]
 
 
 class NewsletterDeskSerializer(serializers.ModelSerializer):
     class Meta:
         model = NewsletterSignup
-        fields = ["id", "email", "created_at"]
+        fields = ["id", "email", "consent_at", "created_at"]
 
 
 class AcademyDeskSerializer(serializers.ModelSerializer):
     class Meta:
         model = AcademyInterest
-        fields = ["id", "name", "email", "message", "created_at"]
+        fields = ["id", "name", "email", "message", "consent_at", "created_at"]
