@@ -157,7 +157,11 @@ class Command(BaseCommand):
         if not path.exists():
             self.stdout.write(self.style.WARNING(f"Missing {path.name}. Pages were loaded. Projects were not."))
             return
-        studies = json.loads(path.read_text(encoding="utf-8"))
+        raw = path.read_text(encoding="utf-8")
+        # The header note is for people editing the file. It is not JSON.
+        if raw.lstrip().startswith("/*"):
+            raw = raw.split("*/", 1)[1]
+        studies = json.loads(raw)
         for index, study in enumerate(studies):
             if not study.get("published"):
                 continue
