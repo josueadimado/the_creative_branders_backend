@@ -92,6 +92,22 @@ def _safe_send(subject: str, body: str, recipients: list[str], reply_to: str | N
         logger.exception("Failed to send email %r to %s", subject, recipients)
 
 
+def _visit_lines(record) -> list[str]:
+    """Campaign tags, the first page, and the site that sent the visitor."""
+    rows = [
+        ("Source", record.utm_source),
+        ("Medium", record.utm_medium),
+        ("Campaign", record.utm_campaign),
+        ("Content", record.utm_content),
+        ("Landing page", record.landing_page),
+        ("Referrer", record.referrer),
+    ]
+    found = [f"{label}: {value}" for label, value in rows if (value or "").strip()]
+    if not found:
+        return ["How they arrived: direct"]
+    return ["How they arrived:"] + found
+
+
 def notify_inquiry(inquiry: InquiryMessage) -> None:
     studio = (getattr(settings, "STUDIO_NOTIFY_EMAIL", "") or "").strip()
     admin_url = _admin_change_url(inquiry)
@@ -110,6 +126,7 @@ def notify_inquiry(inquiry: InquiryMessage) -> None:
         f"Budget: {budget}",
         f"Link: {inquiry.brief_link or '(not provided)'}",
         f"Message:\n{inquiry.message}",
+        *_visit_lines(inquiry),
         f"\nAdmin: {admin_url}",
     ]
     if studio:
@@ -170,6 +187,7 @@ def notify_waitlist(signup: WaitlistSignup) -> None:
         [
             f"Name: {signup.name or '(not provided)'}",
             f"Email: {signup.email}",
+            *_visit_lines(signup),
             f"\nAdmin: {admin_url}",
         ]
     )
@@ -188,7 +206,7 @@ def notify_newsletter(signup) -> None:
     admin_url = _admin_change_url(signup)
     _safe_send(
         subject=f"Newsletter signup: {signup.email}",
-        body=f"Email: {signup.email}\n\nAdmin: {admin_url}",
+        body="\n".join([f"Email: {signup.email}", *_visit_lines(signup), f"\nAdmin: {admin_url}"]),
         recipients=[studio],
         reply_to=signup.email,
     )
@@ -204,6 +222,7 @@ def notify_academy(interest: AcademyInterest) -> None:
             f"Name: {interest.name}",
             f"Email: {interest.email}",
             f"Message: {interest.message or '(not provided)'}",
+            *_visit_lines(interest),
             f"\nAdmin: {admin_url}",
         ]
     )

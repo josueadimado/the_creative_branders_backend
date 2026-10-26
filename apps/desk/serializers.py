@@ -298,22 +298,28 @@ class InquiryDeskSerializer(serializers.ModelSerializer):
             "reviewed",
             "consent_at",
             "created_at",
+            "utm_source",
+            "utm_medium",
+            "utm_campaign",
+            "utm_content",
+            "landing_page",
+            "referrer",
         ]
 
 
 class WaitlistDeskSerializer(serializers.ModelSerializer):
     class Meta:
         model = WaitlistSignup
-        fields = ["id", "email", "name", "consent_at", "created_at"]
+        fields = ["id", "email", "name", "consent_at", "created_at", "utm_source", "utm_medium", "utm_campaign", "utm_content", "landing_page", "referrer"]
 
 
 class NewsletterDeskSerializer(serializers.ModelSerializer):
     class Meta:
         model = NewsletterSignup
-        fields = ["id", "email", "consent_at", "created_at"]
+        fields = ["id", "email", "consent_at", "created_at", "utm_source", "utm_medium", "utm_campaign", "utm_content", "landing_page", "referrer"]
 
 
 class AcademyDeskSerializer(serializers.ModelSerializer):
     class Meta:
         model = AcademyInterest
-        fields = ["id", "name", "email", "message", "consent_at", "created_at"]
+        fields = ["id", "name", "email", "message", "consent_at", "created_at", "utm_source", "utm_medium", "utm_campaign", "utm_content", "landing_page", "referrer"]

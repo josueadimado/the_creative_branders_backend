@@ -42,7 +42,43 @@ class ConsentRecordMixin(serializers.Serializer):
         return super().create(validated_data)
 
 
-class InquiryMessageSerializer(ConsentRecordMixin, BotCheckMixin, serializers.ModelSerializer):
+class VisitFieldsMixin(serializers.Serializer):
+    """Optional campaign tags and the first page of the visit. Blank is fine."""
+
+    utm_source = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    utm_medium = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    utm_campaign = serializers.CharField(required=False, allow_blank=True, max_length=160)
+    utm_content = serializers.CharField(required=False, allow_blank=True, max_length=160)
+    landing_page = serializers.CharField(required=False, allow_blank=True, max_length=300)
+    referrer = serializers.CharField(required=False, allow_blank=True, max_length=300)
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        limits = {
+            "utm_source": 120,
+            "utm_medium": 120,
+            "utm_campaign": 160,
+            "utm_content": 160,
+            "landing_page": 300,
+            "referrer": 300,
+        }
+        for name, limit in limits.items():
+            if name in attrs:
+                attrs[name] = str(attrs.get(name) or "").strip()[:limit]
+        return attrs
+
+
+VISIT_FIELDS = [
+    "utm_source",
+    "utm_medium",
+    "utm_campaign",
+    "utm_content",
+    "landing_page",
+    "referrer",
+]
+
+
+class InquiryMessageSerializer(VisitFieldsMixin, ConsentRecordMixin, BotCheckMixin, serializers.ModelSerializer):
     class Meta:
         model = InquiryMessage
         fields = [
@@ -58,6 +94,7 @@ class InquiryMessageSerializer(ConsentRecordMixin, BotCheckMixin, serializers.Mo
             "brief_link",
             "message",
             "consent",
+            *VISIT_FIELDS,
             # Not saved. The bot check reads these, then removes them.
             "website",
             "form_started",
@@ -117,20 +154,20 @@ class InquiryMessageSerializer(ConsentRecordMixin, BotCheckMixin, serializers.Mo
         return value
 
 
-class WaitlistSignupSerializer(ConsentRecordMixin, BotCheckMixin, serializers.ModelSerializer):
+class WaitlistSignupSerializer(VisitFieldsMixin, ConsentRecordMixin, BotCheckMixin, serializers.ModelSerializer):
     class Meta:
         model = WaitlistSignup
-        fields = ["email", "name", "consent", "website", "form_started"]
+        fields = ["email", "name", "consent", "website", "form_started", *VISIT_FIELDS]
 
     def validate_email(self, value: str) -> str:
         return value.strip().lower()
 
 
-class NewsletterSignupSerializer(ConsentRecordMixin, BotCheckMixin, serializers.ModelSerializer):
+class NewsletterSignupSerializer(VisitFieldsMixin, ConsentRecordMixin, BotCheckMixin, serializers.ModelSerializer):
     """There is no public newsletter form yet. When one is added, it must send consent."""
     class Meta:
         model = NewsletterSignup
-        fields = ["email", "consent", "website", "form_started"]
+        fields = ["email", "consent", "website", "form_started", *VISIT_FIELDS]
 
     def validate_email(self, value: str) -> str:
         return value.strip().lower()
@@ -144,10 +181,10 @@ def _limited_text(value: str, limit: int, message: str) -> str:
     return text
 
 
-class AcademyInterestSerializer(ConsentRecordMixin, BotCheckMixin, serializers.ModelSerializer):
+class AcademyInterestSerializer(VisitFieldsMixin, ConsentRecordMixin, BotCheckMixin, serializers.ModelSerializer):
     class Meta:
         model = AcademyInterest
-        fields = ["name", "email", "message", "consent", "website", "form_started"]
+        fields = ["name", "email", "message", "consent", "website", "form_started", *VISIT_FIELDS]
 
     def validate_email(self, value: str) -> str:
         return value.strip().lower()

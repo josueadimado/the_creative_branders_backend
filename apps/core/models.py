@@ -51,7 +51,21 @@ BUDGET_OPTIONS = BUDGET_OPTIONS_GHS + BUDGET_OPTIONS_USD
 CURRENCY_OPTIONS = ["GHS", "USD"]
 
 
-class InquiryMessage(models.Model):
+class VisitRecord(models.Model):
+    """How this visitor arrived. Shared by every public form."""
+
+    utm_source = models.CharField(max_length=120, blank=True)
+    utm_medium = models.CharField(max_length=120, blank=True)
+    utm_campaign = models.CharField(max_length=160, blank=True)
+    utm_content = models.CharField(max_length=160, blank=True)
+    landing_page = models.CharField(max_length=300, blank=True)
+    referrer = models.CharField(max_length=300, blank=True)
+
+    class Meta:
+        abstract = True
+
+
+class InquiryMessage(VisitRecord):
     """A project brief from the contact page."""
 
     name = models.CharField(max_length=120)
@@ -84,7 +98,7 @@ class InquiryMessage(models.Model):
         return f"{self.name} — {self.email} ({self.created_at:%Y-%m-%d})"
 
 
-class WaitlistSignup(models.Model):
+class WaitlistSignup(VisitRecord):
     """SmartCRM landing page waitlist."""
 
     email = models.EmailField(unique=True)
@@ -105,7 +119,7 @@ class WaitlistSignup(models.Model):
         return self.email
 
 
-class NewsletterSignup(models.Model):
+class NewsletterSignup(VisitRecord):
     """Footer signup for studio news and updates."""
 
     email = models.EmailField(unique=True)
@@ -125,7 +139,7 @@ class NewsletterSignup(models.Model):
         return self.email
 
 
-class AcademyInterest(models.Model):
+class AcademyInterest(VisitRecord):
     """Academy expression-of-interest form."""
 
     name = models.CharField(max_length=120)
