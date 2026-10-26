@@ -118,7 +118,7 @@ class PageAdmin(admin.ModelAdmin):
                     ("stat_3_value", "stat_3_label"),
                     ("stat_4_value", "stat_4_label"),
                 ),
-                "description": "Used on the About page. Leave a pair blank to keep the number already on the site.",
+                "description": "Used on the About page. Leave the project and country numbers blank. The website counts those from the published projects.",
             },
         ),
     )

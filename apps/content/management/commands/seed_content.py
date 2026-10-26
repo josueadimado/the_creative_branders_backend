@@ -76,15 +76,15 @@ PAGES = [
         "paragraph_1": "A lot of growing businesses run on the same setup. A website someone built a few years ago. Bookings in a spreadsheet or a notebook. Customers in WhatsApp. Payments in a separate app. It works until the business grows, and then the owner spends their evenings holding it all together.",
         "paragraph_2": f"Fixing that properly used to mean hiring an agency built for much larger companies. We started {BRAND_NAME} so growing businesses could get the same standard of work at a size and price that fits them: the website, the apps and the systems behind them, planned together.",
         "paragraph_3": "One person leads your project from the first call to launch. If it needs a mobile developer, a payments specialist or a data analyst, we bring in people we've worked with before. Everything we do shows up in our client portal, so you always know what's been done and what's next.",
-        # The public page counts published projects itself. These stay blank until confirmed.
-        "stat_1_value": "",
-        "stat_1_label": "",
+        # The project count and the country count stay blank. The website fills those in.
+        "stat_1_value": "6+",
+        "stat_1_label": "Years in technology",
         "stat_2_value": "",
-        "stat_2_label": "",
-        "stat_3_value": "",
-        "stat_3_label": "",
+        "stat_2_label": "Projects delivered",
+        "stat_3_value": "15",
+        "stat_3_label": "Specialists in our network",
         "stat_4_value": "",
-        "stat_4_label": "",
+        "stat_4_label": "Countries served",
     },
     {
         "slug": "work",

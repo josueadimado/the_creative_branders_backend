@@ -112,7 +112,9 @@ class PageSerializer(serializers.ModelSerializer):
             (page.stat_3_value, page.stat_3_label),
             (page.stat_4_value, page.stat_4_label),
         ]
-        return [{"value": value, "label": label} for value, label in pairs if value and label]
+        # A label with a blank number still counts, so the four About figures keep their places.
+        # The website fills in the project count and the country count itself.
+        return [{"value": value, "label": label} for value, label in pairs if value or label]
 
 
 class NoteSerializer(serializers.ModelSerializer):
