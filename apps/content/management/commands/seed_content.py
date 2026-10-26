@@ -52,6 +52,7 @@ def _read_note(path: Path) -> dict:
         "description": meta.get("description", ""),
         "family": meta.get("family", "brand-websites"),
         "published_on": meta.get("date") or None,
+        "published": meta.get("published", "false").strip().lower() == "true",
         "body": body.strip(),
     }
 
@@ -208,7 +209,7 @@ class Command(BaseCommand):
             published_on = None
             if note["published_on"]:
                 published_on = date.fromisoformat(note["published_on"])
-            # Drafts until the Insights menu is a real page.
+            # A note stays a draft unless its file says published: true.
             Note.objects.update_or_create(
                 slug=note["slug"],
                 defaults={
@@ -216,7 +217,7 @@ class Command(BaseCommand):
                     "description": note["description"],
                     "body": note["body"],
                     "family": note["family"],
-                    "published": False,
+                    "published": bool(note["published"]),
                     "published_on": published_on,
                 },
             )
