@@ -84,7 +84,7 @@ class ProjectShotInline(admin.TabularInline):
 class SiteSettingsAdmin(admin.ModelAdmin):
     fieldsets = (
         ("Studio", {"fields": ("name", "tagline", "description", "email")}),
-        ("Social links", {"fields": ("linkedin_url", "instagram_url", "facebook_url", "x_url")}),
+        ("Social links", {"fields": ("linkedin_url", "instagram_url", "facebook_url")}),
     )
 
     def has_add_permission(self, request):
