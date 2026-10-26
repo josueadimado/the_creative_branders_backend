@@ -87,6 +87,7 @@ def _project_card(project: Project) -> dict:
         "public_name": project.public_name,
         "published": project.published,
         "featured": project.featured,
+        "family": project.family,
     }
 
 
@@ -108,6 +109,7 @@ class OverviewView(DeskAPIView):
                 "notes": notes.count(),
                 "published_notes": notes.filter(published=True).count(),
                 "inquiries": InquiryMessage.objects.count(),
+                "unread_inquiries": InquiryMessage.objects.filter(reviewed=False).count(),
                 "waitlist": WaitlistSignup.objects.count(),
                 "newsletter": NewsletterSignup.objects.count(),
                 "academy": AcademyInterest.objects.count(),
@@ -305,6 +307,15 @@ class InquiryDetailView(DeskAPIView):
     def get(self, request, pk):
         row = get_object_or_404(InquiryMessage, pk=pk)
         return Response(InquiryDeskSerializer(row).data)
+
+    def post(self, request, pk):
+        """Mark the brief as seen. The page calls this after it has drawn the New badge."""
+
+        row = get_object_or_404(InquiryMessage, pk=pk)
+        if not row.reviewed:
+            row.reviewed = True
+            row.save(update_fields=["reviewed"])
+        return Response(status=204)
 
     def delete(self, request, pk):
         row = get_object_or_404(InquiryMessage, pk=pk)

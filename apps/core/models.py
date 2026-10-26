@@ -54,6 +54,7 @@ class InquiryMessage(models.Model):
     budget_range = models.CharField(max_length=80, blank=True)
     brief_link = models.CharField(max_length=300, blank=True)
     message = models.TextField()
+    reviewed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

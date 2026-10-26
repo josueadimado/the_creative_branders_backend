@@ -296,6 +296,7 @@ class InquiryDeskSerializer(serializers.ModelSerializer):
             "budget_range",
             "brief_link",
             "message",
+            "reviewed",
             "created_at",
         ]
 
