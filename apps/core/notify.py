@@ -190,6 +190,7 @@ def notify_newsletter(signup) -> None:
         subject=f"Newsletter signup: {signup.email}",
         body=f"Email: {signup.email}\n\nAdmin: {admin_url}",
         recipients=[studio],
+        reply_to=signup.email,
     )
 
 
