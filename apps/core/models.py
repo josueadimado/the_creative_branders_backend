@@ -178,6 +178,11 @@ class StudioEvent(models.Model):
     user_agent = models.CharField(max_length=400, blank=True)
     # mobile | tablet | desktop | unknown
     device = models.CharField(max_length=20, blank=True, db_index=True)
+    # Approximate place from IP (city/country). Filled after analytics consent.
+    country_code = models.CharField(max_length=2, blank=True, db_index=True)
+    country = models.CharField(max_length=80, blank=True)
+    city = models.CharField(max_length=80, blank=True)
+    region = models.CharField(max_length=80, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:

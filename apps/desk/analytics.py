@@ -15,6 +15,7 @@ from django.utils import timezone
 
 from apps.core.analytics_events import CONTACT_EVENT_NAMES, CONVERSION_EVENT_NAMES, EVENT_LABELS
 from apps.core.models import InquiryMessage, StudioEvent
+from apps.core.visit_context import format_location_label, lookup_ip_location
 
 from .ga4 import fetch_ga_traffic
 
@@ -144,11 +145,29 @@ def build_journeys(events: list[StudioEvent]) -> dict[str, Any]:
     exit_pages: Counter[str] = Counter()
     error_messages: Counter[str] = Counter()
     form_reasons: Counter[str] = Counter()
+    countries: Counter[str] = Counter()
     converted_count = 0
     bounced_count = 0
     with_errors = 0
     duration_total = 0
     pages_total = 0
+    # One lookup per IP when older events have an IP but no saved country yet.
+    geo_by_ip: dict[str, dict[str, str]] = {}
+
+    def _geo_for(event: StudioEvent) -> dict[str, str]:
+        if event.country or event.country_code or event.city:
+            return {
+                "country_code": event.country_code or "",
+                "country": event.country or "",
+                "city": event.city or "",
+                "region": event.region or "",
+            }
+        ip = str(event.client_ip or "").strip()
+        if not ip:
+            return {"country_code": "", "country": "", "city": "", "region": ""}
+        if ip not in geo_by_ip:
+            geo_by_ip[ip] = lookup_ip_location(ip)
+        return geo_by_ip[ip]
 
     for visit_id, visit_events in by_visit.items():
         ordered = sorted(visit_events, key=lambda item: item.created_at)
@@ -186,7 +205,6 @@ def build_journeys(events: list[StudioEvent]) -> dict[str, Any]:
             with_errors += 1
 
         first = ordered[0]
-        last = ordered[-1]
         landing = _prop(first, "landing_page") or (paths[0] if paths else "/")
         exit_path = paths[-1] if paths else landing
         if not converted:
@@ -198,6 +216,17 @@ def build_journeys(events: list[StudioEvent]) -> dict[str, Any]:
                 error_messages[msg[:80]] += 1
             elif item.name == "form_error":
                 form_reasons[f"{_prop(item, 'form') or 'form'}:{_prop(item, 'reason') or 'error'}"] += 1
+
+        geo = _geo_for(first)
+        location_label = format_location_label(
+            city=geo.get("city", ""),
+            region=geo.get("region", ""),
+            country=geo.get("country", ""),
+            country_code=geo.get("country_code", ""),
+        )
+        country_key = geo.get("country") or geo.get("country_code") or ""
+        if country_key:
+            countries[country_key] += 1
 
         steps = []
         for item in ordered:
@@ -222,6 +251,12 @@ def build_journeys(events: list[StudioEvent]) -> dict[str, Any]:
                 "started_at": first.created_at.isoformat(),
                 "started_label": started.strftime("%d %b · %H:%M").lstrip("0").replace(" 0", " "),
                 "device": first.device or "",
+                "client_ip": str(first.client_ip or ""),
+                "country_code": geo.get("country_code") or "",
+                "country": geo.get("country") or "",
+                "city": geo.get("city") or "",
+                "region": geo.get("region") or "",
+                "location_label": location_label,
                 "landing_page": landing,
                 "exit_page": exit_path,
                 "pages": paths[:12],
@@ -308,6 +343,9 @@ def build_journeys(events: list[StudioEvent]) -> dict[str, Any]:
         "tips": tips[:6],
         "top_exit_pages": [
             {"path": path, "count": count} for path, count in exit_pages.most_common(8)
+        ],
+        "top_countries": [
+            {"country": name, "count": count} for name, count in countries.most_common(8)
         ],
         "common_errors": [
             {"message": msg, "count": count} for msg, count in error_messages.most_common(5)

@@ -18,7 +18,7 @@ from .serializers import (
     StudioEventSerializer,
     WaitlistSignupSerializer,
 )
-from .visit_context import device_from_user_agent
+from .visit_context import device_from_user_agent, lookup_ip_location
 
 
 class InquiryCreateView(generics.CreateAPIView):
@@ -102,8 +102,13 @@ class StudioEventCreateView(generics.CreateAPIView):
         raw_ip = (client_ip(request) or "").strip()
         # GenericIPAddressField rejects placeholders like "unknown".
         saved_ip = raw_ip if raw_ip and raw_ip.lower() != "unknown" else None
+        geo = lookup_ip_location(saved_ip or "")
         serializer.save(
             client_ip=saved_ip,
             user_agent=user_agent,
             device=device_from_user_agent(user_agent, device_hint),
+            country_code=geo.get("country_code") or "",
+            country=geo.get("country") or "",
+            city=geo.get("city") or "",
+            region=geo.get("region") or "",
         )

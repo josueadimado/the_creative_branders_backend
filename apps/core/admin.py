@@ -44,7 +44,7 @@ class AcademyInterestAdmin(admin.ModelAdmin):
 
 @admin.register(StudioEvent)
 class StudioEventAdmin(admin.ModelAdmin):
-    list_display = ("name", "page_path", "device", "client_ip", "utm_source_display", "created_at")
+    list_display = ("name", "page_path", "device", "country", "city", "client_ip", "utm_source_display", "created_at")
     list_filter = ("name", "device", "created_at")
     search_fields = ("name", "page_path", "visit_id", "client_ip", "user_agent")
     readonly_fields = (
