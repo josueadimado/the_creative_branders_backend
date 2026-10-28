@@ -199,10 +199,12 @@ class StudioEventSerializer(serializers.ModelSerializer):
     """A single consented site action. Unknown event names are rejected."""
 
     props = serializers.DictField(child=serializers.CharField(allow_blank=True, max_length=200), required=False)
+    visit_id = serializers.CharField(required=False, allow_blank=True, max_length=64)
+    device = serializers.CharField(required=False, allow_blank=True, max_length=20)
 
     class Meta:
         model = StudioEvent
-        fields = ["name", "page_path", "props"]
+        fields = ["name", "page_path", "props", "visit_id", "device"]
 
     def validate_name(self, value: str) -> str:
         name = (value or "").strip()
@@ -215,6 +217,15 @@ class StudioEventSerializer(serializers.ModelSerializer):
         if path and not path.startswith("/"):
             path = f"/{path}"
         return path
+
+    def validate_visit_id(self, value: str) -> str:
+        return (value or "").strip()[:64]
+
+    def validate_device(self, value: str) -> str:
+        hint = (value or "").strip().lower()[:20]
+        if hint in {"", "mobile", "tablet", "desktop", "unknown"}:
+            return hint
+        return "unknown"
 
     def validate_props(self, value):
         raw = value or {}

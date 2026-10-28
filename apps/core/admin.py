@@ -44,7 +44,20 @@ class AcademyInterestAdmin(admin.ModelAdmin):
 
 @admin.register(StudioEvent)
 class StudioEventAdmin(admin.ModelAdmin):
-    list_display = ("name", "page_path", "created_at")
-    list_filter = ("name", "created_at")
-    search_fields = ("name", "page_path")
-    readonly_fields = ("name", "page_path", "props", "created_at")
+    list_display = ("name", "page_path", "device", "client_ip", "utm_source_display", "created_at")
+    list_filter = ("name", "device", "created_at")
+    search_fields = ("name", "page_path", "visit_id", "client_ip", "user_agent")
+    readonly_fields = (
+        "name",
+        "page_path",
+        "props",
+        "visit_id",
+        "client_ip",
+        "user_agent",
+        "device",
+        "created_at",
+    )
+
+    @admin.display(description="utm_source")
+    def utm_source_display(self, obj: StudioEvent) -> str:
+        return str((obj.props or {}).get("utm_source") or "—")

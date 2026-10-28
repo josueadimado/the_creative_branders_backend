@@ -8,6 +8,7 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 
+from .guards import client_ip
 from .models import AcademyInterest, InquiryMessage, NewsletterSignup, StudioEvent, WaitlistSignup
 from .notify import notify_academy, notify_inquiry, notify_newsletter, notify_waitlist
 from .serializers import (
@@ -17,6 +18,7 @@ from .serializers import (
     StudioEventSerializer,
     WaitlistSignupSerializer,
 )
+from .visit_context import device_from_user_agent
 
 
 class InquiryCreateView(generics.CreateAPIView):
@@ -92,3 +94,16 @@ class StudioEventCreateView(generics.CreateAPIView):
     serializer_class = StudioEventSerializer
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "studio_event"
+
+    def perform_create(self, serializer):
+        request = self.request
+        user_agent = (request.META.get("HTTP_USER_AGENT") or "")[:400]
+        device_hint = serializer.validated_data.get("device") or ""
+        raw_ip = (client_ip(request) or "").strip()
+        # GenericIPAddressField rejects placeholders like "unknown".
+        saved_ip = raw_ip if raw_ip and raw_ip.lower() != "unknown" else None
+        serializer.save(
+            client_ip=saved_ip,
+            user_agent=user_agent,
+            device=device_from_user_agent(user_agent, device_hint),
+        )

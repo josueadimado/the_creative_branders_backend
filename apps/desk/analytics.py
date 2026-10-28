@@ -126,10 +126,24 @@ def build_analytics(range_key: str = "7d") -> dict[str, Any]:
         for i, day in enumerate(days[-7:])
     ]
 
+    # Paths opened in the same browser session (helps “what were they looking at?”).
+    paths_by_visit: dict[str, list[str]] = defaultdict(list)
+    for event in events:
+        if not event.visit_id or not event.page_path:
+            continue
+        bucket = paths_by_visit[event.visit_id]
+        if event.page_path not in bucket:
+            bucket.append(event.page_path)
+
     activity = []
     for event in events[:40]:
         local = timezone.localtime(event.created_at)
         day_text = local.strftime("%A · %d %b").replace(" 0", " ")
+        source = _prop(event, "utm_source")
+        campaign = _prop(event, "utm_campaign")
+        referrer = _prop(event, "referrer")
+        landing = _prop(event, "landing_page")
+        visit_paths = paths_by_visit.get(event.visit_id or "", [])[:5]
         activity.append(
             {
                 "day": day_text,
@@ -138,6 +152,14 @@ def build_analytics(range_key: str = "7d") -> dict[str, Any]:
                 "name": event.name,
                 "detail": _activity_detail(event),
                 "created_at": event.created_at.isoformat(),
+                "visit_id": event.visit_id or "",
+                "device": event.device or "",
+                "client_ip": event.client_ip or "",
+                "source": source,
+                "campaign": campaign,
+                "referrer": referrer,
+                "landing_page": landing,
+                "visit_paths": visit_paths,
             }
         )
     # Briefs are already in Inbox; include them in the feed even if the click event was missed.

@@ -165,12 +165,19 @@ class StudioEvent(models.Model):
     """
     A meaningful site action, stored after analytics consent.
     Page views stay in GA4. This table is for contact CTAs, case opens, and form success.
+    visit_id links actions from one browser session. IP/device help the studio reply in context.
     """
 
     name = models.CharField(max_length=64, db_index=True)
     page_path = models.CharField(max_length=300, blank=True, db_index=True)
-    # Small key/value bag for location, button, case_study, filter, budget, and so on.
+    # Small key/value bag for location, button, case_study, filter, budget, utm_*, and so on.
     props = models.JSONField(default=dict, blank=True)
+    # Same id for every action in one browser tab session (set by the public site).
+    visit_id = models.CharField(max_length=64, blank=True, db_index=True)
+    client_ip = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=400, blank=True)
+    # mobile | tablet | desktop | unknown
+    device = models.CharField(max_length=20, blank=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
