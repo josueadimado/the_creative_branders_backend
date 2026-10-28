@@ -13,10 +13,26 @@ from typing import Any
 from django.db.models import Count
 from django.utils import timezone
 
-from apps.core.analytics_events import CONTACT_EVENT_NAMES, EVENT_LABELS
+from apps.core.analytics_events import CONTACT_EVENT_NAMES, CONVERSION_EVENT_NAMES, EVENT_LABELS
 from apps.core.models import InquiryMessage, StudioEvent
 
 from .ga4 import fetch_ga_traffic
+
+# High-volume page timing — keep out of the Activity feed so CTAs stay visible.
+JOURNEY_NOISE = frozenset({"page_view", "page_leave"})
+
+# Highest-ranked outcome wins for each visit.
+_OUTCOME_RANK = {
+    "brief_submit": 50,
+    "waitlist_signup": 40,
+    "whatsapp_click": 30,
+    "start_project_click": 28,
+    "email_click": 26,
+    "phone_click": 26,
+    "audit_cta_click": 24,
+    "case_study_view": 10,
+    "work_filter": 5,
+}
 
 
 def _parse_day(value: str | None) -> date | None:
@@ -54,6 +70,10 @@ def _prop(event: StudioEvent, key: str) -> str:
 
 def _activity_detail(event: StudioEvent) -> str:
     props = event.props or {}
+    if event.name == "js_error":
+        return str(props.get("message") or props.get("source") or event.page_path or "error")[:160]
+    if event.name == "form_error":
+        return f"{props.get('form') or 'form'}: {props.get('reason') or 'error'}"
     parts: list[str] = []
     for key in ("button", "location", "case_study", "filter", "which", "service", "budget_band", "currency"):
         value = props.get(key)
@@ -78,6 +98,224 @@ def _campaign_tuple(source: str, medium: str, campaign: str) -> tuple[str, str, 
     )
 
 
+def _outcome_for(names: set[str]) -> tuple[str, str]:
+    """Return (outcome_key, friendly_label) for the strongest event in a visit."""
+    best = ""
+    best_rank = -1
+    for name in names:
+        rank = _OUTCOME_RANK.get(name, 0)
+        if rank > best_rank:
+            best_rank = rank
+            best = name
+    if not best:
+        return "browsed", "Browsed"
+    if best in CONVERSION_EVENT_NAMES or best == "case_study_view":
+        return best, EVENT_LABELS.get(best, best)
+    return best, EVENT_LABELS.get(best, best)
+
+
+def _step_detail(event: StudioEvent) -> str:
+    props = event.props or {}
+    if event.name == "page_leave":
+        sec = props.get("duration_sec")
+        return f"{sec}s on page" if sec else (event.page_path or "")
+    if event.name == "js_error":
+        return str(props.get("message") or props.get("source") or "error")[:160]
+    if event.name == "form_error":
+        form = props.get("form") or "form"
+        reason = props.get("reason") or "error"
+        return f"{form}: {reason}"
+    return _activity_detail(event)
+
+
+def build_journeys(events: list[StudioEvent]) -> dict[str, Any]:
+    """
+    Group studio events by visit_id into visitor journeys.
+    Also builds simple “what to improve” tips from exits and errors.
+    """
+    by_visit: dict[str, list[StudioEvent]] = defaultdict(list)
+    for event in events:
+        vid = (event.visit_id or "").strip()
+        if not vid:
+            continue
+        by_visit[vid].append(event)
+
+    journeys: list[dict[str, Any]] = []
+    exit_pages: Counter[str] = Counter()
+    error_messages: Counter[str] = Counter()
+    form_reasons: Counter[str] = Counter()
+    converted_count = 0
+    bounced_count = 0
+    with_errors = 0
+    duration_total = 0
+    pages_total = 0
+
+    for visit_id, visit_events in by_visit.items():
+        ordered = sorted(visit_events, key=lambda item: item.created_at)
+        names = {item.name for item in ordered}
+        paths: list[str] = []
+        for item in ordered:
+            path = (item.page_path or "").strip()
+            if path and path not in paths:
+                paths.append(path)
+        if not paths:
+            landing = _prop(ordered[0], "landing_page")
+            if landing:
+                paths.append(landing)
+
+        duration_sec = 0
+        for item in ordered:
+            if item.name != "page_leave":
+                continue
+            raw = _prop(item, "duration_sec")
+            try:
+                duration_sec += max(0, int(float(raw)))
+            except (TypeError, ValueError):
+                pass
+
+        error_count = sum(1 for item in ordered if item.name in {"js_error", "form_error"})
+        converted = bool(names & CONVERSION_EVENT_NAMES)
+        outcome_key, outcome_label = _outcome_for(names)
+        if converted:
+            converted_count += 1
+            outcome_key = outcome_key if outcome_key in CONVERSION_EVENT_NAMES else "contact"
+        elif len(paths) <= 1 and "case_study_view" not in names:
+            bounced_count += 1
+            outcome_key, outcome_label = "bounced", "Left quickly"
+        if error_count:
+            with_errors += 1
+
+        first = ordered[0]
+        last = ordered[-1]
+        landing = _prop(first, "landing_page") or (paths[0] if paths else "/")
+        exit_path = paths[-1] if paths else landing
+        if not converted:
+            exit_pages[exit_path] += 1
+
+        for item in ordered:
+            if item.name == "js_error":
+                msg = _prop(item, "message") or "error"
+                error_messages[msg[:80]] += 1
+            elif item.name == "form_error":
+                form_reasons[f"{_prop(item, 'form') or 'form'}:{_prop(item, 'reason') or 'error'}"] += 1
+
+        steps = []
+        for item in ordered:
+            local = timezone.localtime(item.created_at)
+            steps.append(
+                {
+                    "time": local.strftime("%H:%M:%S"),
+                    "name": item.name,
+                    "label": EVENT_LABELS.get(item.name, item.name),
+                    "path": item.page_path or "",
+                    "detail": _step_detail(item),
+                    "created_at": item.created_at.isoformat(),
+                }
+            )
+
+        duration_total += duration_sec
+        pages_total += len(paths)
+        started = timezone.localtime(first.created_at)
+        journeys.append(
+            {
+                "visit_id": visit_id,
+                "started_at": first.created_at.isoformat(),
+                "started_label": started.strftime("%d %b · %H:%M").lstrip("0").replace(" 0", " "),
+                "device": first.device or "",
+                "landing_page": landing,
+                "exit_page": exit_path,
+                "pages": paths[:12],
+                "page_count": len(paths),
+                "duration_sec": duration_sec,
+                "event_count": len(ordered),
+                "error_count": error_count,
+                "converted": converted,
+                "outcome": outcome_key,
+                "outcome_label": outcome_label,
+                "source": _prop(first, "utm_source") or "",
+                "campaign": _prop(first, "utm_campaign") or "",
+                "referrer": _prop(first, "referrer") or "",
+                "steps": steps,
+            }
+        )
+
+    journeys.sort(key=lambda row: row["started_at"], reverse=True)
+    visit_count = len(journeys)
+    avg_duration = int(duration_total / visit_count) if visit_count else 0
+    avg_pages = round(pages_total / visit_count, 1) if visit_count else 0.0
+
+    tips: list[dict[str, str]] = []
+    for path, count in exit_pages.most_common(3):
+        if count < 2:
+            continue
+        tips.append(
+            {
+                "title": f"People leave from {path}",
+                "detail": f"{count} visits ended here without a contact action. Check the CTA and next step on this page.",
+                "severity": "high" if count >= 5 else "medium",
+            }
+        )
+    for reason, count in form_reasons.most_common(2):
+        tips.append(
+            {
+                "title": f"Form friction: {reason}",
+                "detail": f"Seen {count} time(s). Visitors hit this before they could finish.",
+                "severity": "high",
+            }
+        )
+    for msg, count in error_messages.most_common(2):
+        tips.append(
+            {
+                "title": "Page error showing up",
+                "detail": f"“{msg}” · {count} time(s). Fixing this removes a silent drop-off.",
+                "severity": "high",
+            }
+        )
+    if visit_count and bounced_count / visit_count >= 0.4:
+        tips.append(
+            {
+                "title": "Many one-page visits",
+                "detail": f"{bounced_count} of {visit_count} visits left after a single page. Strengthen the first screen CTA.",
+                "severity": "medium",
+            }
+        )
+    if not tips and visit_count:
+        tips.append(
+            {
+                "title": "Keep watching journeys",
+                "detail": "No strong drop-off pattern yet. As more consented visits arrive, exits and form issues will surface here.",
+                "severity": "low",
+            }
+        )
+    elif not tips:
+        tips.append(
+            {
+                "title": "Waiting for consented visits",
+                "detail": "Journeys appear after a visitor accepts analytics cookies and moves around the site.",
+                "severity": "low",
+            }
+        )
+
+    return {
+        "stats": {
+            "visits": visit_count,
+            "converted": converted_count,
+            "bounced": bounced_count,
+            "with_errors": with_errors,
+            "avg_duration_sec": avg_duration,
+            "avg_pages": avg_pages,
+        },
+        "tips": tips[:6],
+        "top_exit_pages": [
+            {"path": path, "count": count} for path, count in exit_pages.most_common(8)
+        ],
+        "common_errors": [
+            {"message": msg, "count": count} for msg, count in error_messages.most_common(5)
+        ],
+        "items": journeys[:60],
+    }
+
+
 def build_analytics(
     range_key: str = "7d",
     *,
@@ -95,7 +333,7 @@ def build_analytics(
         end = timezone.make_aware(datetime.combine(custom_end, time.max))
         events = list(
             StudioEvent.objects.filter(created_at__gte=start, created_at__lte=end).order_by("-created_at")[
-                :2000
+                :4000
             ]
         )
         briefs = list(
@@ -108,7 +346,7 @@ def build_analytics(
         if range_key == "custom":
             range_key = "7d"
         start = _range_start(range_key)
-        events = list(StudioEvent.objects.filter(created_at__gte=start).order_by("-created_at")[:2000])
+        events = list(StudioEvent.objects.filter(created_at__gte=start).order_by("-created_at")[:4000])
         briefs = list(
             InquiryMessage.objects.filter(created_at__gte=start).order_by("-created_at")[:200]
         )
@@ -182,8 +420,12 @@ def build_analytics(
         if event.page_path not in bucket:
             bucket.append(event.page_path)
 
+    journeys_payload = build_journeys(events)
+
     activity = []
-    for event in events[:40]:
+    for event in events:
+        if event.name in JOURNEY_NOISE:
+            continue
         local = timezone.localtime(event.created_at)
         day_text = local.strftime("%A · %d %b").replace(" 0", " ")
         source = _prop(event, "utm_source")
@@ -209,6 +451,8 @@ def build_analytics(
                 "visit_paths": visit_paths,
             }
         )
+        if len(activity) >= 40:
+            break
     # Briefs are already in Inbox; include them in the feed even if the click event was missed.
     for brief in briefs[:20]:
         local = timezone.localtime(brief.created_at)
@@ -371,6 +615,7 @@ def build_analytics(
                     "detail": "Contact CTAs + submitted briefs (combined studio signal)",
                 },
             ],
+            "journeys": journeys_payload,
         },
         "ga": {
             "visitors": ga.visitors if ga.connected else 0,
