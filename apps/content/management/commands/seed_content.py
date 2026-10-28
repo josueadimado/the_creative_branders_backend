@@ -7,6 +7,7 @@ Run once:
 
 It leaves existing rows alone, so later edits in /admin/ are safe.
 Pass --refresh only when you want those edits replaced by this starter copy.
+Pass --add-missing to publish new seed projects without touching existing desk rows.
 """
 import json
 from datetime import date
@@ -55,6 +56,54 @@ def _read_note(path: Path) -> dict:
         "published": meta.get("published", "false").strip().lower() == "true",
         "body": body.strip(),
     }
+
+
+def _load_studies() -> list[dict]:
+    path = SEED_DIR / "projects.json"
+    if not path.exists():
+        return []
+    raw = path.read_text(encoding="utf-8")
+    # The header note is for people editing the file. It is not JSON.
+    if raw.lstrip().startswith("/*"):
+        raw = raw.split("*/", 1)[1]
+    return json.loads(raw)
+
+
+def _project_defaults(study: dict, index: int) -> dict:
+    slug = study["slug"]
+    featured_at = FEATURED_ORDER.index(slug) if slug in FEATURED_ORDER else None
+    return {
+        "public_name": study.get("publicName") or slug,
+        "company": study.get("company") or "",
+        "anonymous_name": study.get("anonymousName") or study.get("publicName") or slug,
+        "name_approved": bool(study.get("nameApproved")),
+        "logo_path": study.get("logo") or "",
+        "live_url": study.get("liveUrl") or "",
+        "link_approved": bool(study.get("linkApproved")),
+        "relationship": study.get("relationship") or "client",
+        "family": study.get("family") or "web-applications",
+        "secondary_families": study.get("secondaryFamilies") or [],
+        "sector": study.get("sector") or "",
+        "country": study.get("country") or "",
+        "featured": bool(study.get("featured")),
+        "published": True,
+        "position": featured_at if featured_at is not None else 100 + index,
+        "summary": study.get("summary") or "",
+        "challenge": study.get("challenge") or "",
+        "approach": study.get("approach") or "",
+        "built": study.get("built") or [],
+        "stack": study.get("stack") or [],
+        "results": study.get("results") or [],
+        "device": study.get("device") or "browser",
+    }
+
+
+def _replace_shots(project: Project, images: list) -> None:
+    project.shots.all().delete()
+    for order, image in enumerate(images or []):
+        if not image:
+            continue
+        ProjectShot.objects.create(project=project, existing_path=image, sort_order=order)
 
 
 PAGES = [
@@ -114,12 +163,32 @@ class Command(BaseCommand):
             action="store_true",
             help="Replace pages, projects, and notes with the starter copy.",
         )
+        parser.add_argument(
+            "--add-missing",
+            action="store_true",
+            help="Add published seed projects that are not in the desk yet. Leaves existing rows alone.",
+        )
 
     def handle(self, *args, **options):
         refresh = options["refresh"]
+        add_missing = options["add_missing"]
+
+        if add_missing and not refresh:
+            added = self._add_missing_projects()
+            if added:
+                self.stdout.write(
+                    self.style.SUCCESS(
+                        f"Added {added} missing project(s). Existing desk rows were left alone."
+                    )
+                )
+            else:
+                self.stdout.write("No missing published projects in the seed file.")
+            return
+
         if not refresh and (Project.objects.exists() or Page.objects.exists()):
             self.stdout.write("Content is already in the desk. Nothing was changed.")
             self.stdout.write("Use --refresh only if you want the starter copy to replace those edits.")
+            self.stdout.write("Use --add-missing to publish new seed projects without touching existing rows.")
             return
 
         if refresh:
@@ -154,52 +223,37 @@ class Command(BaseCommand):
             Page.objects.update_or_create(slug=row["slug"], defaults=row)
 
     def _projects(self):
-        path = SEED_DIR / "projects.json"
-        if not path.exists():
-            self.stdout.write(self.style.WARNING(f"Missing {path.name}. Pages were loaded. Projects were not."))
+        studies = _load_studies()
+        if not studies:
+            self.stdout.write(self.style.WARNING("Missing projects.json. Pages were loaded. Projects were not."))
             return
-        raw = path.read_text(encoding="utf-8")
-        # The header note is for people editing the file. It is not JSON.
-        if raw.lstrip().startswith("/*"):
-            raw = raw.split("*/", 1)[1]
-        studies = json.loads(raw)
+        for index, study in enumerate(studies):
+            if not study.get("published"):
+                continue
+            project, _ = Project.objects.update_or_create(
+                slug=study["slug"],
+                defaults=_project_defaults(study, index),
+            )
+            _replace_shots(project, study.get("images") or [])
+
+    def _add_missing_projects(self) -> int:
+        """Create only seed projects that do not already exist. Never overwrites desk edits."""
+        studies = _load_studies()
+        if not studies:
+            self.stdout.write(self.style.WARNING("Missing projects.json. Nothing was added."))
+            return 0
+        added = 0
         for index, study in enumerate(studies):
             if not study.get("published"):
                 continue
             slug = study["slug"]
-            featured_at = FEATURED_ORDER.index(slug) if slug in FEATURED_ORDER else None
-            project, _ = Project.objects.update_or_create(
-                slug=slug,
-                defaults={
-                    "public_name": study.get("publicName") or slug,
-                    "company": study.get("company") or "",
-                    "anonymous_name": study.get("anonymousName") or study.get("publicName") or slug,
-                    "name_approved": bool(study.get("nameApproved")),
-                    "logo_path": study.get("logo") or "",
-                    "live_url": study.get("liveUrl") or "",
-                    "link_approved": bool(study.get("linkApproved")),
-                    "relationship": study.get("relationship") or "client",
-                    "family": study.get("family") or "web-applications",
-                    "secondary_families": study.get("secondaryFamilies") or [],
-                    "sector": study.get("sector") or "",
-                    "country": study.get("country") or "",
-                    "featured": bool(study.get("featured")),
-                    "published": True,
-                    "position": featured_at if featured_at is not None else 100 + index,
-                    "summary": study.get("summary") or "",
-                    "challenge": study.get("challenge") or "",
-                    "approach": study.get("approach") or "",
-                    "built": study.get("built") or [],
-                    "stack": study.get("stack") or [],
-                    "results": study.get("results") or [],
-                    "device": study.get("device") or "browser",
-                },
-            )
-            project.shots.all().delete()
-            for order, image in enumerate(study.get("images") or []):
-                if not image:
-                    continue
-                ProjectShot.objects.create(project=project, existing_path=image, sort_order=order)
+            if Project.objects.filter(slug=slug).exists():
+                continue
+            project = Project.objects.create(slug=slug, **_project_defaults(study, index))
+            _replace_shots(project, study.get("images") or [])
+            added += 1
+            self.stdout.write(f"  + {slug}")
+        return added
 
     def _notes(self):
         if not INSIGHTS_DIR.exists():

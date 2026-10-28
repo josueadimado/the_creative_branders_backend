@@ -621,5 +621,49 @@
     "featured": false,
     "stack": [],
     "device": "browser"
+  },
+  {
+    "slug": "strictly-social-africa",
+    "publicName": "Strictly Social Africa",
+    "logo": "/images/logos/strictly-social-africa.png",
+    "anonymousName": "A media and social club network for African youth",
+    "nameApproved": true,
+    "liveUrl": "https://strictlysocialafrica.com/",
+    "linkApproved": true,
+    "family": "brand-websites",
+    "sector": "Media / social club",
+    "country": "Ghana",
+    "summary": "A media and social club site where young people find shows, podcasts, events and community in one place.",
+    "challenge": "Strictly Social Africa already ran shows, playlists, networking nights and a podcast academy, but that work lived across Instagram posts, WhatsApp groups, flyers and separate event links. A first-time visitor could not tell, in one visit, what SSA was, what was on this month, or how to join. Brand partners and Gen Z audiences met the same problem: the brand felt alive in person and on social, then thin and scattered online.",
+    "approach": "We gave SSA one public home with a clear promise, then rooms for the work they already do — featured content, events, blog, shop and a path to join. The site keeps their colour and youth energy, and ends with a credit that the studio designed it.",
+    "built": [
+      "A homepage that states the mission and points people into communication sessions, culture and lifestyle, playlists and podcasts. About pages for the team, internships and casting. An events section for networking nights, workshops and social gatherings. A blog for listening, career and relationship pieces. Shop and contact pages, newsletter signup, and links out to Spotify, Apple Music and the usual social channels."
+    ],
+    "stack": [
+      "WordPress",
+      "Elementor",
+      "PHP",
+      "MySQL"
+    ],
+    "results": [
+      {
+        "value": "One front door",
+        "label": "Shows, podcasts, events and joining sit on the same site."
+      },
+      {
+        "value": "A clear next step",
+        "label": "A visitor can explore content, find an event, or join without chasing links."
+      }
+    ],
+    "images": [
+      "/images/work/strictly-social-africa/homepage.jpg",
+      "/images/work/strictly-social-africa/about.jpg",
+      "/images/work/strictly-social-africa/shop.jpg"
+    ],
+    "published": true,
+    "relationship": "client",
+    "secondaryFamilies": [],
+    "featured": false,
+    "device": "browser"
   }
 ]
