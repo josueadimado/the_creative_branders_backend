@@ -178,7 +178,8 @@ class StudioEvent(models.Model):
         verbose_name = "Studio event"
         verbose_name_plural = "Studio events"
         indexes = [
-            models.Index(fields=["name", "created_at"]),
+            # Name must match migration 0009 so production does not ask for a rename.
+            models.Index(fields=["name", "created_at"], name="core_studio_name_7f0e1a_idx"),
         ]
 
     def __str__(self) -> str:
