@@ -8,12 +8,13 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 
-from .models import AcademyInterest, InquiryMessage, NewsletterSignup, WaitlistSignup
+from .models import AcademyInterest, InquiryMessage, NewsletterSignup, StudioEvent, WaitlistSignup
 from .notify import notify_academy, notify_inquiry, notify_newsletter, notify_waitlist
 from .serializers import (
     AcademyInterestSerializer,
     InquiryMessageSerializer,
     NewsletterSignupSerializer,
+    StudioEventSerializer,
     WaitlistSignupSerializer,
 )
 
@@ -82,3 +83,12 @@ class AcademyInterestCreateView(generics.CreateAPIView):
     def perform_create(self, serializer):
         interest = serializer.save()
         notify_academy(interest)
+
+
+class StudioEventCreateView(generics.CreateAPIView):
+    """Store one consented studio action. No list is exposed publicly."""
+
+    queryset = StudioEvent.objects.all()
+    serializer_class = StudioEventSerializer
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "studio_event"

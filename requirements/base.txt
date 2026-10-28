@@ -6,3 +6,5 @@ django-cors-headers==4.6.0
 django-environ==0.11.2
 psycopg2-binary==2.9.10
 whitenoise==6.8.2
+# Desk Analytics traffic from Google Analytics 4 (optional until credentials are set).
+google-analytics-data==0.18.2

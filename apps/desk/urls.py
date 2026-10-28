@@ -3,6 +3,7 @@ from django.urls import path
 
 from .views import (
     AcademyListView,
+    AnalyticsView,
     DeskLoginView,
     DeskLogoutView,
     DeskMeView,
@@ -28,6 +29,7 @@ urlpatterns = [
     path("logout/", DeskLogoutView.as_view(), name="desk-logout"),
     path("me/", DeskMeView.as_view(), name="desk-me"),
     path("overview/", OverviewView.as_view(), name="desk-overview"),
+    path("analytics/", AnalyticsView.as_view(), name="desk-analytics"),
     path("pages/", PageListView.as_view(), name="desk-pages"),
     path("pages/<slug:slug>/", PageDetailView.as_view(), name="desk-page"),
     path("projects/", ProjectListView.as_view(), name="desk-projects"),

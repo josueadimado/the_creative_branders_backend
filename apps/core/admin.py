@@ -1,7 +1,7 @@
 """Show form submissions in Django admin so they can be triaged without extra tools."""
 from django.contrib import admin
 
-from .models import AcademyInterest, InquiryMessage, NewsletterSignup, WaitlistSignup
+from .models import AcademyInterest, InquiryMessage, NewsletterSignup, StudioEvent, WaitlistSignup
 
 VISIT_FIELDS = (
     "utm_source",
@@ -40,3 +40,11 @@ class AcademyInterestAdmin(admin.ModelAdmin):
     list_display = ("name", "email", "utm_source", "created_at")
     search_fields = ("name", "email", "message", "utm_source", "utm_campaign")
     readonly_fields = ("consent_at", "created_at", *VISIT_FIELDS)
+
+
+@admin.register(StudioEvent)
+class StudioEventAdmin(admin.ModelAdmin):
+    list_display = ("name", "page_path", "created_at")
+    list_filter = ("name", "created_at")
+    search_fields = ("name", "page_path")
+    readonly_fields = ("name", "page_path", "props", "created_at")

@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 from django.utils import timezone
 from rest_framework import serializers
 
+from .analytics_events import ALLOWED_EVENT_NAMES
 from .botcheck import BotCheckMixin
 from .models import (
     BUDGET_OPTIONS_GHS,
@@ -20,6 +21,7 @@ from .models import (
     AcademyInterest,
     InquiryMessage,
     NewsletterSignup,
+    StudioEvent,
     WaitlistSignup,
 )
 
@@ -191,3 +193,41 @@ class AcademyInterestSerializer(VisitFieldsMixin, ConsentRecordMixin, BotCheckMi
 
     def validate_message(self, value: str) -> str:
         return _limited_text(value, 4000, "Keep the note to 4,000 characters or less.")
+
+
+class StudioEventSerializer(serializers.ModelSerializer):
+    """A single consented site action. Unknown event names are rejected."""
+
+    props = serializers.DictField(child=serializers.CharField(allow_blank=True, max_length=200), required=False)
+
+    class Meta:
+        model = StudioEvent
+        fields = ["name", "page_path", "props"]
+
+    def validate_name(self, value: str) -> str:
+        name = (value or "").strip()
+        if name not in ALLOWED_EVENT_NAMES:
+            raise serializers.ValidationError("That event is not recorded.")
+        return name
+
+    def validate_page_path(self, value: str) -> str:
+        path = (value or "").strip()[:300]
+        if path and not path.startswith("/"):
+            path = f"/{path}"
+        return path
+
+    def validate_props(self, value):
+        raw = value or {}
+        if len(raw) > 12:
+            raise serializers.ValidationError("Too many properties.")
+        cleaned: dict[str, str] = {}
+        for key, item in raw.items():
+            key_text = str(key).strip()[:40]
+            if not key_text:
+                continue
+            cleaned[key_text] = str(item)[:200]
+        return cleaned
+
+    def create(self, validated_data):
+        validated_data.setdefault("props", {})
+        return super().create(validated_data)

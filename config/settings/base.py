@@ -157,6 +157,8 @@ REST_FRAMEWORK = {
         "waitlist": "8/hour",
         "newsletter": "8/hour",
         "academy": "8/hour",
+        # Meaningful site actions after cookie Accept. Higher than forms; still capped.
+        "studio_event": "180/hour",
     },
 }
 
@@ -167,6 +169,12 @@ BACKEND_PUBLIC_URL = env("BACKEND_PUBLIC_URL", default="http://localhost:8000").
 
 # Studio inbox for new form submissions. Leave blank to skip studio emails.
 STUDIO_NOTIFY_EMAIL = env("STUDIO_NOTIFY_EMAIL", default="")
+
+# Desk Analytics → GA4 Data API (optional). Property id is numeric, not G-XXXX.
+# Paste the service-account JSON as one line, or mount a file and set
+# GOOGLE_APPLICATION_CREDENTIALS to that path.
+GA4_PROPERTY_ID = env("GA4_PROPERTY_ID", default="")
+GA4_CREDENTIALS_JSON = env("GA4_CREDENTIALS_JSON", default="")
 
 # Outbound mail. Prefer Resend (RESEND_API_KEY → smtp.resend.com).
 # Or set EMAIL_HOST / EMAIL_PORT / EMAIL_HOST_USER / EMAIL_HOST_PASSWORD for any SMTP.

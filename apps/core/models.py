@@ -159,3 +159,27 @@ class AcademyInterest(VisitRecord):
 
     def __str__(self) -> str:
         return f"{self.name} <{self.email}>"
+
+
+class StudioEvent(models.Model):
+    """
+    A meaningful site action, stored after analytics consent.
+    Page views stay in GA4. This table is for contact CTAs, case opens, and form success.
+    """
+
+    name = models.CharField(max_length=64, db_index=True)
+    page_path = models.CharField(max_length=300, blank=True, db_index=True)
+    # Small key/value bag for location, button, case_study, filter, budget, and so on.
+    props = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Studio event"
+        verbose_name_plural = "Studio events"
+        indexes = [
+            models.Index(fields=["name", "created_at"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.name} @ {self.page_path or '/'} ({self.created_at:%Y-%m-%d %H:%M})"

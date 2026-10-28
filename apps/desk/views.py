@@ -18,6 +18,7 @@ from apps.content.models import Note, Page, Project, ProjectShot, SiteSettings
 from apps.core.guards import clear_login_failures, login_blocked, note_login_failure
 from apps.core.models import AcademyInterest, InquiryMessage, NewsletterSignup, WaitlistSignup
 
+from .analytics import build_analytics
 from .serializers import (
     AcademyDeskSerializer,
     InquiryDeskSerializer,
@@ -89,6 +90,16 @@ def _project_card(project: Project) -> dict:
         "featured": project.featured,
         "family": project.family,
     }
+
+
+class AnalyticsView(DeskAPIView):
+    """Aggregated studio-log analytics for the Desk Analytics screens."""
+
+    def get(self, request):
+        range_key = str(request.query_params.get("range") or "7d").strip().lower()
+        if range_key not in {"today", "7d", "30d"}:
+            range_key = "7d"
+        return Response(build_analytics(range_key))
 
 
 class OverviewView(DeskAPIView):
