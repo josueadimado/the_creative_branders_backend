@@ -145,7 +145,7 @@ class Command(BaseCommand):
                 "linkedin_url": SOCIAL["linkedin"],
                 "instagram_url": SOCIAL["instagram"],
                 "facebook_url": SOCIAL["facebook"],
-                "x_url": "",
+                "x_url": SOCIAL["x"],
             },
         )
 

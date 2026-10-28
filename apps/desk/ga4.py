@@ -76,7 +76,12 @@ def _date_bounds(range_key: str) -> tuple[date, date]:
     return today - timedelta(days=6), today
 
 
-def fetch_ga_traffic(range_key: str = "7d") -> GaTraffic:
+def fetch_ga_traffic(
+    range_key: str = "7d",
+    *,
+    start_day: date | None = None,
+    end_day: date | None = None,
+) -> GaTraffic:
     """Pull the Desk traffic block. Never raises to the request."""
     property_id = _property_id()
     info = _credentials_info()
@@ -106,7 +111,12 @@ def fetch_ga_traffic(range_key: str = "7d") -> GaTraffic:
             scopes=["https://www.googleapis.com/auth/analytics.readonly"],
         )
         client = BetaAnalyticsDataClient(credentials=credentials)
-        start, end = _date_bounds(range_key)
+        if start_day and end_day:
+            start, end = start_day, end_day
+            if start > end:
+                start, end = end, start
+        else:
+            start, end = _date_bounds(range_key)
         date_range = DateRange(start_date=start.isoformat(), end_date=end.isoformat())
         property_name = f"properties/{property_id}"
 

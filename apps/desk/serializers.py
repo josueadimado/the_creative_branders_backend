@@ -270,12 +270,14 @@ class SettingsDeskSerializer(serializers.ModelSerializer):
             "linkedin_url",
             "instagram_url",
             "facebook_url",
+            "x_url",
         ]
         extra_kwargs = {
             "description": {"allow_blank": True, "required": False},
             "linkedin_url": {"allow_blank": True, "required": False},
             "instagram_url": {"allow_blank": True, "required": False},
             "facebook_url": {"allow_blank": True, "required": False},
+            "x_url": {"allow_blank": True, "required": False},
         }
 
 

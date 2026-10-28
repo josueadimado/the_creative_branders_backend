@@ -97,9 +97,17 @@ class AnalyticsView(DeskAPIView):
 
     def get(self, request):
         range_key = str(request.query_params.get("range") or "7d").strip().lower()
-        if range_key not in {"today", "7d", "30d"}:
+        if range_key not in {"today", "7d", "30d", "custom"}:
             range_key = "7d"
-        return Response(build_analytics(range_key))
+        start_day = str(request.query_params.get("from") or "").strip()
+        end_day = str(request.query_params.get("to") or "").strip()
+        return Response(
+            build_analytics(
+                range_key,
+                start_day=start_day or None,
+                end_day=end_day or None,
+            )
+        )
 
 
 class OverviewView(DeskAPIView):

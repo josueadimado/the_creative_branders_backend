@@ -136,4 +136,5 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
             "linkedin_url",
             "instagram_url",
             "facebook_url",
+            "x_url",
         ]

@@ -39,7 +39,6 @@ class SiteSettings(models.Model):
     linkedin_url = models.URLField(blank=True)
     instagram_url = models.URLField(blank=True)
     facebook_url = models.URLField(blank=True)
-    # The X account is retired. The column stays so older databases do not lose a field.
     x_url = models.URLField(blank=True)
 
     class Meta:

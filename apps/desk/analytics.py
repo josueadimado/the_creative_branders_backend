@@ -7,7 +7,7 @@ The frontend can still show sample GA numbers while ga_connected is false.
 from __future__ import annotations
 
 from collections import Counter, defaultdict
-from datetime import datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from typing import Any
 
 from django.db.models import Count
@@ -19,6 +19,16 @@ from apps.core.models import InquiryMessage, StudioEvent
 from .ga4 import fetch_ga_traffic
 
 
+def _parse_day(value: str | None) -> date | None:
+    text = (value or "").strip()
+    if not text:
+        return None
+    try:
+        return date.fromisoformat(text[:10])
+    except ValueError:
+        return None
+
+
 def _range_start(range_key: str) -> datetime:
     now = timezone.now()
     if range_key == "today":
@@ -27,6 +37,14 @@ def _range_start(range_key: str) -> datetime:
         return now - timedelta(days=30)
     # Default: last 7 days including today.
     return now - timedelta(days=6)
+
+
+def _page_kind(path: str) -> str:
+    if path.startswith("/work/") and path != "/work":
+        return "case"
+    if path.startswith("/insights"):
+        return "insights"
+    return "marketing"
 
 
 def _prop(event: StudioEvent, key: str) -> str:
@@ -60,12 +78,41 @@ def _campaign_tuple(source: str, medium: str, campaign: str) -> tuple[str, str, 
     )
 
 
-def build_analytics(range_key: str = "7d") -> dict[str, Any]:
-    start = _range_start(range_key)
-    events = list(StudioEvent.objects.filter(created_at__gte=start).order_by("-created_at")[:2000])
-    briefs = list(
-        InquiryMessage.objects.filter(created_at__gte=start).order_by("-created_at")[:200]
-    )
+def build_analytics(
+    range_key: str = "7d",
+    *,
+    start_day: str | None = None,
+    end_day: str | None = None,
+) -> dict[str, Any]:
+    custom_start = _parse_day(start_day)
+    custom_end = _parse_day(end_day)
+    use_custom = range_key == "custom" and custom_start and custom_end
+    if use_custom and custom_start > custom_end:
+        custom_start, custom_end = custom_end, custom_start
+
+    if use_custom and custom_start and custom_end:
+        start = timezone.make_aware(datetime.combine(custom_start, time.min))
+        end = timezone.make_aware(datetime.combine(custom_end, time.max))
+        events = list(
+            StudioEvent.objects.filter(created_at__gte=start, created_at__lte=end).order_by("-created_at")[
+                :2000
+            ]
+        )
+        briefs = list(
+            InquiryMessage.objects.filter(created_at__gte=start, created_at__lte=end).order_by(
+                "-created_at"
+            )[:200]
+        )
+        ga_start, ga_end = custom_start, custom_end
+    else:
+        if range_key == "custom":
+            range_key = "7d"
+        start = _range_start(range_key)
+        events = list(StudioEvent.objects.filter(created_at__gte=start).order_by("-created_at")[:2000])
+        briefs = list(
+            InquiryMessage.objects.filter(created_at__gte=start).order_by("-created_at")[:200]
+        )
+        ga_start = ga_end = None
 
     by_name = Counter(event.name for event in events)
     contact_total = sum(by_name[name] for name in CONTACT_EVENT_NAMES)
@@ -199,7 +246,7 @@ def build_analytics(range_key: str = "7d") -> dict[str, Any]:
                 "studioCount": opens or count,
                 "studioLabel": studio_label,
                 "briefs": count,
-                "kind": "case" if path.startswith("/work/") and path != "/work" else "marketing",
+                "kind": _page_kind(path),
             }
         )
 
@@ -224,7 +271,7 @@ def build_analytics(range_key: str = "7d") -> dict[str, Any]:
     top_cta = "WhatsApp" if whatsapp >= start_project else "Start a project"
     top_cta_count = max(whatsapp, start_project, email, phone, audit)
 
-    ga = fetch_ga_traffic(range_key)
+    ga = fetch_ga_traffic(range_key, start_day=ga_start, end_day=ga_end)
     if ga.connected:
         # Attach brief counts onto GA page and channel rows where paths match.
         for row in ga.top_pages:
@@ -280,7 +327,7 @@ def build_analytics(range_key: str = "7d") -> dict[str, Any]:
                         else 0,
                         "studioLabel": "case study opens" if path.startswith("/work/") else "studio actions",
                         "briefs": row.get("briefs", 0),
-                        "kind": "case" if path.startswith("/work/") and path != "/work" else "marketing",
+                        "kind": _page_kind(path),
                     }
                 )
 

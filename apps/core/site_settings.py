@@ -33,6 +33,7 @@ SOCIAL = {
     "linkedin": "https://www.linkedin.com/company/thecreativebranders",
     "instagram": "https://www.instagram.com/thecreativebranders",
     "facebook": "https://www.facebook.com/thecreativebranders",
+    "x": "https://x.com/TheCBranders",
 }
 
 
