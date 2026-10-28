@@ -94,12 +94,11 @@ def fetch_ga_traffic(range_key: str = "7d") -> GaTraffic:
             Metric,
             OrderBy,
             RunReportRequest,
-            StringFilter,
         )
         from google.oauth2 import service_account
-    except ImportError:
-        logger.warning("google-analytics-data is not installed.")
-        return GaTraffic(connected=False, error="GA4 library is not installed.")
+    except ImportError as exc:
+        logger.warning("GA4 import failed: %s", exc)
+        return GaTraffic(connected=False, error=f"GA4 import failed: {exc}"[:200])
 
     try:
         credentials = service_account.Credentials.from_service_account_info(
@@ -203,8 +202,8 @@ def fetch_ga_traffic(range_key: str = "7d") -> GaTraffic:
                     not_expression=FilterExpression(
                         filter=Filter(
                             field_name="sessionCampaignName",
-                            string_filter=StringFilter(
-                                match_type=StringFilter.MatchType.EXACT,
+                            string_filter=Filter.StringFilter(
+                                match_type=Filter.StringFilter.MatchType.EXACT,
                                 value="(not set)",
                             ),
                         )
@@ -228,8 +227,8 @@ def fetch_ga_traffic(range_key: str = "7d") -> GaTraffic:
                     FilterExpression(
                         filter=Filter(
                             field_name="pagePath",
-                            string_filter=StringFilter(
-                                match_type=StringFilter.MatchType.BEGINS_WITH,
+                            string_filter=Filter.StringFilter(
+                                match_type=Filter.StringFilter.MatchType.BEGINS_WITH,
                                 value="/work",
                             ),
                         )
@@ -237,8 +236,8 @@ def fetch_ga_traffic(range_key: str = "7d") -> GaTraffic:
                     FilterExpression(
                         filter=Filter(
                             field_name="pagePath",
-                            string_filter=StringFilter(
-                                match_type=StringFilter.MatchType.BEGINS_WITH,
+                            string_filter=Filter.StringFilter(
+                                match_type=Filter.StringFilter.MatchType.BEGINS_WITH,
                                 value="/services",
                             ),
                         )
