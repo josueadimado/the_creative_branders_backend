@@ -218,7 +218,8 @@ class StudioEventSerializer(serializers.ModelSerializer):
 
     def validate_props(self, value):
         raw = value or {}
-        if len(raw) > 12:
+        # Room for CTA fields plus utm_*/landing_page/referrer from the visit.
+        if len(raw) > 16:
             raise serializers.ValidationError("Too many properties.")
         cleaned: dict[str, str] = {}
         for key, item in raw.items():

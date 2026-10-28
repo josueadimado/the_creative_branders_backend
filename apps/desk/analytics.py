@@ -41,11 +41,23 @@ def _activity_detail(event: StudioEvent) -> str:
         value = props.get(key)
         if value:
             parts.append(str(value))
+    campaign = _prop(event, "utm_campaign")
+    source = _prop(event, "utm_source")
+    if campaign or source:
+        parts.append(f"via {source or 'campaign'}/{campaign or '—'}")
     if event.page_path and event.name not in {"case_study_view"}:
         parts.append(event.page_path)
     elif event.name == "case_study_view" and not parts:
         parts.append(_prop(event, "case_study") or event.page_path)
     return " · ".join(parts) if parts else (event.page_path or "—")
+
+
+def _campaign_tuple(source: str, medium: str, campaign: str) -> tuple[str, str, str]:
+    return (
+        (source or "").strip() or "(direct)",
+        (medium or "").strip() or "(none)",
+        (campaign or "").strip() or "(none)",
+    )
 
 
 def build_analytics(range_key: str = "7d") -> dict[str, Any]:
@@ -82,13 +94,21 @@ def build_analytics(range_key: str = "7d") -> dict[str, Any]:
     for brief in briefs:
         landing = (brief.landing_page or "").strip() or "/"
         briefs_by_landing[landing] += 1
-        key = (
-            (brief.utm_source or "").strip() or "(direct)",
-            (brief.utm_medium or "").strip() or "(none)",
-            (brief.utm_campaign or "").strip() or "(none)",
-        )
+        key = _campaign_tuple(brief.utm_source or "", brief.utm_medium or "", brief.utm_campaign or "")
         if brief.utm_source or brief.utm_campaign:
             briefs_by_campaign[key] += 1
+
+    # Contact CTAs tagged with the same visit UTMs (even when no brief was sent).
+    contacts_by_campaign: dict[tuple[str, str, str], int] = defaultdict(int)
+    for event in events:
+        if event.name not in CONTACT_EVENT_NAMES:
+            continue
+        source = _prop(event, "utm_source")
+        campaign = _prop(event, "utm_campaign")
+        if not source and not campaign:
+            continue
+        key = _campaign_tuple(source, _prop(event, "utm_medium"), campaign)
+        contacts_by_campaign[key] += 1
 
     # Daily contact actions for the studio chart.
     day_counts: Counter[str] = Counter()
@@ -161,18 +181,23 @@ def build_analytics(range_key: str = "7d") -> dict[str, Any]:
             }
         )
 
+    campaign_keys = set(briefs_by_campaign) | set(contacts_by_campaign)
     campaigns = [
         {
             "source": source,
             "medium": medium,
             "campaign": campaign,
             "sessions": 0,
-            "briefs": count,
+            "contacts": contacts_by_campaign.get((source, medium, campaign), 0),
+            "briefs": briefs_by_campaign.get((source, medium, campaign), 0),
         }
-        for (source, medium, campaign), count in sorted(
-            briefs_by_campaign.items(), key=lambda item: item[1], reverse=True
-        )[:12]
+        for source, medium, campaign in campaign_keys
     ]
+    campaigns.sort(
+        key=lambda row: (row["briefs"], row["contacts"], row["sessions"]),
+        reverse=True,
+    )
+    campaigns = campaigns[:12]
 
     top_cta = "WhatsApp" if whatsapp >= start_project else "Start a project"
     top_cta_count = max(whatsapp, start_project, email, phone, audit)
@@ -182,21 +207,36 @@ def build_analytics(range_key: str = "7d") -> dict[str, Any]:
         # Attach brief counts onto GA page and channel rows where paths match.
         for row in ga.top_pages:
             row["briefs"] = briefs_by_landing.get(row["path"], 0)
-        # Prefer GA campaign sessions, then overlay brief counts from the form.
-        brief_lookup = {
-            (item["source"].lower(), item["campaign"].lower()): item["briefs"] for item in campaigns
+        # Prefer GA campaign sessions, then overlay studio contacts + briefs.
+        studio_lookup = {
+            (item["source"].lower(), item["campaign"].lower()): item for item in campaigns
         }
         merged_campaigns = []
+        seen: set[tuple[str, str]] = set()
         for row in ga.campaign_sessions:
             key = (row["source"].lower(), row["campaign"].lower())
+            seen.add(key)
+            match = studio_lookup.get(key, {})
             merged_campaigns.append(
                 {
                     **row,
-                    "briefs": brief_lookup.get(key, 0),
+                    "medium": row.get("medium") or match.get("medium") or "(none)",
+                    "contacts": match.get("contacts", 0),
+                    "briefs": match.get("briefs", 0),
                 }
             )
+        for item in campaigns:
+            key = (item["source"].lower(), item["campaign"].lower())
+            if key in seen:
+                continue
+            merged_campaigns.append(item)
         if not merged_campaigns:
             merged_campaigns = campaigns
+        merged_campaigns.sort(
+            key=lambda row: (row.get("briefs", 0), row.get("contacts", 0), row.get("sessions", 0)),
+            reverse=True,
+        )
+        campaigns = merged_campaigns[:12]
         # Fill work_opens gaViews from top pages when the path matches.
         views_by_path = {row["path"]: row["views"] for row in ga.top_pages}
         for row in work_opens:
@@ -221,7 +261,6 @@ def build_analytics(range_key: str = "7d") -> dict[str, Any]:
                         "kind": "case" if path.startswith("/work/") and path != "/work" else "marketing",
                     }
                 )
-        campaigns = merged_campaigns
 
     return {
         "range": range_key,
