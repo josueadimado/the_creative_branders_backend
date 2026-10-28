@@ -61,3 +61,15 @@ jobs:
           tags: ${{ env.IMAGE }}:backup
           labels: |
             org.opencontainers.image.source=https://github.com/josueadimado/the_creative_branders_backend
+
+      # Same pattern as the frontend: after the image is published, ping Dokploy to pull it.
+      # Secret name: DOKPLOY_DEPLOY_WEBHOOK (backend repo) — paste the webhook from the API service.
+      - name: Deploy the new image
+        env:
+          WEBHOOK: ${{ secrets.DOKPLOY_DEPLOY_WEBHOOK }}
+        run: |
+          if [ -z "$WEBHOOK" ]; then
+            echo "::warning::No DOKPLOY_DEPLOY_WEBHOOK secret. The image was published. Deploy the backend service in Dokploy so it pulls ghcr.io/.../the_creative_branders_backend:main."
+            exit 0
+          fi
+          curl --fail --silent --show-error --request POST "$WEBHOOK"

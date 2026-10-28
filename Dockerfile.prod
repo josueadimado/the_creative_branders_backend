@@ -1,4 +1,6 @@
 # Production image: gunicorn only, no compilers or local-dev tools.
+# Bump when a requirements change must land on Dokploy even if :main looked current.
+# ga4-client: 2026-10-28
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
